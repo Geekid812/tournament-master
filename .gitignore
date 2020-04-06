@@ -1,0 +1,8 @@
+# Ignore Python cache folder
+__pycache__
+
+# Ignore VSCode cache
+.vscode
+
+# (TEMP) Ignore data folder
+data
