@@ -91,7 +91,7 @@ class TOrganizer(commands.Cog):
     def __init__(self, client):
         self.client = client
         self.tournament = Tournament()
-        self.tournaments = ReadJSON("tournaments.json")
+        # self.tournaments = ReadJSON("tournaments.json")
         self.attr = ['name', 'time', 'prize', 'host', 'roles', 'note']
         self.channels = Channel(client)
         self.roles = Role(client)

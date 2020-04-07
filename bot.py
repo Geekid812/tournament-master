@@ -11,6 +11,7 @@ from classes.emote import Emote
 from cmds.t_organizer import TOrganizer, TournamentJoinException
 
 config = ReadJSON("config.json")
+tokens = ReadJSON("tokens.json")
 client = commands.Bot(
     command_prefix=config['prefix'], help_command=None, self_bot=False)
 starting = True
@@ -108,4 +109,4 @@ async def on_command_error(ctx, error):
     traceback.print_exception(type(error), error, error.__traceback__)
 
 # Run Client
-client.run(config['token'])
+client.run(tokens['token'])
