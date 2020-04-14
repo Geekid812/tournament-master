@@ -271,19 +271,49 @@ class TOrganizer(commands.Cog):
             raise commands.errors.BadArgument(
                 f"`{modifier}` has already been added to the tournament.")
 
-        modifier = self.modifiers[i]
+        modifier = self.modifiers[i].copy()
         fields = []
 
         if isinstance(modifier, dict):  # Value Settable Modifier
             modifier['value'] = await ModifierValue(ctx, modifier['value'], value)
             fields.append({'name': "New Value", 'value': modifier['value']})
-            await ctx.send(f"{Emote.check} Modifier `{modifier['name']}` was set to **{value}**.")
+            await ctx.send(f"{Emote.check} `{modifier['name']}` was set to **{value}**.")
         else:
-                await ctx.send(f"{Emote.check} Modifier `{modifier}` was added to the tournament.")
+                await ctx.send(f"{Emote.check} `{modifier}` is now active for this tournament.")
 
         self.tournament.modifiers.append(modifier)
+        if isinstance(modifier, dict): modifier = modifier['name']
         Log("Modifier Added",
             description=f"{ctx.author.mention} added the modifier `{modifier}` to **{self.tournament.name}**.",
+            color=Color.dark_teal(),
+            fields=fields)
+
+    @modifier.command()
+    @is_authorized(to=True)
+    async def edit(self, ctx, modifier, *, value):
+        i = ModifierCheck(modifier, self.tournament.modifiers)
+
+        if i is False:
+            raise commands.errors.BadArgument(
+                f"`{modifier}` is not active.")
+
+        modifier = self.tournament.modifiers[i]
+        if isinstance(modifier, str):
+            raise commands.errors.BadArgument(f"The value for `{modifier}` cannot be edited.")
+
+        old_value = modifier['value']
+        j = self.modifiers[ModifierCheck(modifier['name'],self.modifiers)]
+        modifier['value'] = await ModifierValue(ctx, j['value'], value)
+
+        if old_value == modifier['value']:
+            await ctx.send("Nothing changed. Silly!")
+            return
+
+        await ctx.send(f"{Emote.check} The value for `{modifier['name']}` was changed to **{modifier['value']}**.")
+        fields = [{'name': "Old Value", 'value': old_value},
+                  {'name': "New Value", 'value': modifier['value']}]
+        Log("Modifier Edited",
+            description=f"{ctx.author.mention} changed the value of `{modifier['name']}` for **{self.tournament.name}**.",
             color=Color.dark_teal(),
             fields=fields)
 
