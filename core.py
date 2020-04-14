@@ -79,6 +79,7 @@ def Log(title, description=None, color=0xaaaaaa, fields=None):
     body = {"embeds": [e]}
     headers = {"Content-Type": "application/json"}
     url = ReadJSON("config.json")["webhook_url"]
+    url += ReadJSON("tokens.json")["webhook_token"]
     requests.post(data=json.dumps(body), headers=headers, url=url)
 
 

@@ -20,7 +20,8 @@ class TournamentJoinException(commands.CommandError):
     def __init__(self, msg):
         super().__init__(message=msg)
 
-class ModifierUtils: # Method class for modifier parsing
+
+class ModifierUtils:  # Method class for modifier parsing
     @classmethod
     def convert_to_prize_type(self, type_):
         prizetypes = ['NonDividable', 'ForEach', 'NoClaim']
@@ -108,7 +109,8 @@ class TOrganizer(commands.Cog):
         self.modifiers = [{'name': 'RequiredRole', 'value': commands.RoleConverter()},
                           {'name': 'MaxParticipants', 'value': int},
                           'SpectatorsAllowed',
-                          {'name': 'PrizeType', 'value': ModifierUtils.convert_to_prize_type},
+                          {'name': 'PrizeType',
+                              'value': ModifierUtils.convert_to_prize_type},
                           {'name': 'AutoGiveCoins', 'value': int}]
 
         self.tournament.name = "Testing"
@@ -218,9 +220,9 @@ class TOrganizer(commands.Cog):
         # self.tournaments.append(self.tournament.todict()) TODO fix this
         self.tournament = Tournament()
 
-    @commands.group(aliases=['modifier', 'modifers', 'modifer'])
+    @commands.group(aliases=['modifiers', 'modifers', 'modifer'])
     @is_authorized(to=True)
-    async def modifiers(self, ctx):
+    async def modifier(self, ctx):
 
         modifiers = self.modifiers
 
@@ -252,12 +254,38 @@ class TOrganizer(commands.Cog):
 
         await ctx.send(embed=embed)
 
-    @modifiers.command()
+    @modifier.command()
     @is_authorized(to=True)
     async def add(self, ctx, modifier, *, value=None):
-        if ModifierCheck(modifier,self.modifiers) is False:
+        i = ModifierCheck(modifier, self.modifiers)
+
+        if i is False:
             raise commands.errors.BadArgument(
                 f"Unknown modifier `{modifier}`.")
+
+        if value is None and modifier not in self.modifiers:
+            raise commands.errors.MissingRequiredArgument(
+                Parameter('value', Parameter.KEYWORD_ONLY))
+
+        if ModifierCheck(modifier, self.tournament.modifiers) is not False:
+            raise commands.errors.BadArgument(
+                f"`{modifier}` has already been added to the tournament.")
+
+        modifier = self.modifiers[i]
+        fields = []
+
+        if isinstance(modifier, dict):  # Value Settable Modifier
+            modifier['value'] = await ModifierValue(ctx, modifier['value'], value)
+            fields.append({'name': "New Value", 'value': modifier['value']})
+            await ctx.send(f"{Emote.check} Modifier `{modifier['name']}` was set to **{value}**.")
+        else:
+                await ctx.send(f"{Emote.check} Modifier `{modifier}` was added to the tournament.")
+
+        self.tournament.modifiers.append(modifier)
+        Log("Modifier Added",
+            description=f"{ctx.author.mention} added the modifier `{modifier}` to **{self.tournament.name}**.",
+            color=Color.dark_teal(),
+            fields=fields)
 
         async def valid(modifier, value, arg):
             """
