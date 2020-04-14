@@ -271,10 +271,11 @@ class TOrganizer(commands.Cog):
             raise commands.errors.BadArgument(
                 f"`{modifier}` has already been added to the tournament.")
 
-        modifier = self.modifiers[i].copy()
+        modifier = self.modifiers[i]
         fields = []
 
         if isinstance(modifier, dict):  # Value Settable Modifier
+            modifier = modifier.copy()
             modifier['value'] = await ModifierValue(ctx, modifier['value'], value)
             fields.append({'name': "New Value", 'value': modifier['value']})
             await ctx.send(f"{Emote.check} `{modifier['name']}` was set to **{value}**.")
@@ -314,6 +315,25 @@ class TOrganizer(commands.Cog):
                   {'name': "New Value", 'value': modifier['value']}]
         Log("Modifier Edited",
             description=f"{ctx.author.mention} changed the value of `{modifier['name']}` for **{self.tournament.name}**.",
+            color=Color.dark_teal(),
+            fields=fields)
+
+    @modifier.command()
+    @is_authorized(to=True)
+    async def remove(self, ctx, modifier):
+        i = ModifierCheck(modifier, self.tournament.modifiers)
+
+        if i is False:
+            raise commands.errors.BadArgument(f"Modifier `{modifier}` is not active on this tournament.")
+        
+        old = self.tournament.modifiers[i]
+        self.tournament.modifiers.pop(i)
+        await ctx.send(f"{Emote.check} `{modifier}` has been removed.")
+        fields = []
+        if isinstance(old, dict):
+            fields.append({'name': "Old Value", 'value': old['value']})
+        Log("Modifier Removed",
+            description=f"{ctx.author.mention} has removed `{modifier}` from **{self.tournament.name}**.",
             color=Color.dark_teal(),
             fields=fields)
 
