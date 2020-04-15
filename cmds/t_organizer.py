@@ -7,13 +7,12 @@ from inspect import Parameter
 from discord.ext import commands
 from discord import Color, Embed
 from classes.tournament import Tournament, Status
-from classes.perms import *
+from classes.perms import is_authorized, allowed_channels, authorized
 from classes.emote import Emote
 from classes.channel import Channel
 from classes.role import Role
 from classes.user import User
-from core import Log, ReadJSON, TimeUntil, ModifierCheck, ModifierValue, SendFirstTournamentMessage, UpdatedEmbed
-from string import ascii_uppercase, digits
+from core import Log, ReadJSON, TimeUntil, ModifierCheck, SendFirstTournamentMessage, UpdatedEmbed
 
 
 class TournamentJoinException(commands.CommandError):
@@ -29,6 +28,19 @@ class ModifierUtils:  # Method class for modifier parsing
             return type_
         raise commands.errors.BadArgument(
             f"`{type_}` is not a valid prize type.")
+
+    @classmethod
+    async def convert_value(self, ctx, converter, value):
+        try:
+            v = await converter.convert(ctx, value)
+        except AttributeError:
+            try:
+                v = converter(value)
+            except ValueError:
+                raise commands.errors.BadArgument(
+                    f"`{value}` is not a vaild value for this modifier.")
+        return v
+
 
 
 class Checklist:  # A class used for the IGN checklist
@@ -111,7 +123,8 @@ class TOrganizer(commands.Cog):
                           'SpectatorsAllowed',
                           {'name': 'PrizeType',
                               'value': ModifierUtils.convert_to_prize_type},
-                          {'name': 'AutoGiveCoins', 'value': int}]
+                          {'name': 'AutoGiveCoins', 'value': int},
+                          {'name': 'AssistingTO', 'value': commands.MemberConverter()}]
 
         self.tournament.name = "Testing"
         self.tournament.roles = "Empty"
@@ -276,11 +289,11 @@ class TOrganizer(commands.Cog):
 
         if isinstance(modifier, dict):  # Value Settable Modifier
             modifier = modifier.copy()
-            modifier['value'] = await ModifierValue(ctx, modifier['value'], value)
+            modifier['value'] = await ModifierUtils.convert_value(ctx, modifier['value'], value)
             fields.append({'name': "New Value", 'value': modifier['value']})
             await ctx.send(f"{Emote.check} `{modifier['name']}` was set to **{value}**.")
         else:
-                await ctx.send(f"{Emote.check} `{modifier}` is now active for this tournament.")
+            await ctx.send(f"{Emote.check} `{modifier}` is now active for this tournament.")
 
         self.tournament.modifiers.append(modifier)
         if isinstance(modifier, dict): modifier = modifier['name']
@@ -304,7 +317,7 @@ class TOrganizer(commands.Cog):
 
         old_value = modifier['value']
         j = self.modifiers[ModifierCheck(modifier['name'],self.modifiers)]
-        modifier['value'] = await ModifierValue(ctx, j['value'], value)
+        modifier['value'] = await ModifierUtils.convert_value(ctx, j['value'], value)
 
         if old_value == modifier['value']:
             await ctx.send("Nothing changed. Silly!")
@@ -336,96 +349,6 @@ class TOrganizer(commands.Cog):
             description=f"{ctx.author.mention} has removed `{modifier}` from **{self.tournament.name}**.",
             color=Color.dark_teal(),
             fields=fields)
-
-        async def valid(modifier, value, arg):
-            """
-            Checks if the modifier and the value are valid.
-            """
-            if arg == 'remove':
-                # End of Remove
-                return ModifierCheck(modifier, self.tournament.modifiers)
-
-            if value is None:
-                if arg == 'edit':
-                    raise commands.errors.MissingRequiredArgument(
-                        Parameter('value', Parameter.POSITIONAL_OR_KEYWORD))
-                if modifier in modifiers:
-                    return modifiers.index(modifier)
-                else:
-                    raise commands.errors.MissingRequiredArgument(
-                        Parameter('value', Parameter.POSITIONAL_OR_KEYWORD))
-
-            if modifier in modifiers:
-                raise commands.errors.BadArgument(
-                    f"A value cannot be provided for modifier `{modifier}`.")
-
-            if arg == 'edit' and ModifierCheck(modifier, self.tournament.modifiers) is False:
-                raise commands.errors.BadArgument(
-                    f"`{modifier}` modifier has not been added to the tournament yet.")
-            if arg == 'add' and ModifierCheck(modifier, self.tournament.modifiers) is not False:
-                raise commands.errors.BadArgument(
-                    f"`{modifier}` modifier has already been added to the tournament.")
-
-            await ModifierValue(ctx, modifiers[index]['value'], value)
-            return index  # End of Edit and Add
-
-        if arg is not None:
-            i = await valid(modifier, value, arg)
-
-        if arg == 'add':
-            fields = []
-            name = modifiers[i]
-
-            if isinstance(name, dict):  # Value settable modifier
-                name = modifiers[i]['name']
-                value = await ModifierValue(ctx, modifiers[i]['value'], value)
-                mod = {'name': "New Value", 'value': value}
-                fields.append(mod.copy())
-                mod['name'] = name
-                await ctx.send(f"{Emote.check} Modifier `{name}` was set to **{value}**.")
-
-            else:
-                mod = name
-                await ctx.send(f"{Emote.check} Modifier `{name}` was added to the tournament.")
-
-            self.tournament.modifiers.append(mod)
-            Log("Modifier Added",
-                description=f"{ctx.author.mention} added the modifier `{modifier}` to **{self.tournament.name}**.",
-                color=Color.dark_teal(),
-                fields=fields)
-            return
-
-        elif arg == 'edit':
-            tindex = ModifierCheck(modifier, self.tournament.modifiers)
-            old = self.tournament.modifiers[tindex]['value']
-
-            value = await ModifierValue(ctx, modifiers[i]['value'], value)
-            self.tournament.modifiers[tindex]['value'] = value
-
-            await ctx.send(f"{Emote.check} Modifier `{modifier}` was changed to **{value}**.")
-            fields = [{'name': "Old Value", 'value': old},
-                      {'name': "New Value", 'value': value}]
-            Log("Modifier Edited",
-                description=f"{ctx.author.mention} changed the value of the modifier `{modifier}` of **{self.tournament.name}**.",
-                color=Color.dark_teal(),
-                fields=fields)
-            return
-
-        elif arg == 'remove':
-            if i is not False:
-                old = self.tournament.modifiers.pop(i)['value']
-
-                await ctx.send(f"{Emote.check} Modifier `{modifier}` has been removed.")
-                fields = [{'name': "Old Value", 'value': old}]
-                Log("Modifier Removed",
-                    description=f"{ctx.author.mention} has removed the modifier `{modifier}` from **{self.tournament.name}**.",
-                    color=Color.dark_teal(),
-                    fields=fields)
-                return
-
-            else:
-                raise commands.errors.BadArgument(
-                    f"Modifier `{modifier}` is not in the tournament's modifiers.")
 
     @commands.command(aliases=['tstart'])
     @is_authorized(to=True)
