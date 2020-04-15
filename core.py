@@ -5,7 +5,6 @@ import json
 from datetime import datetime
 from time import strftime
 import discord
-from discord.ext.commands import BadArgument
 import requests
 from classes.channel import Channel
 
@@ -79,6 +78,7 @@ def Log(title, description=None, color=0xaaaaaa, fields=None):
     body = {"embeds": [e]}
     headers = {"Content-Type": "application/json"}
     url = ReadJSON("config.json")["webhook_url"]
+    url += ReadJSON("tokens.json")["webhook_token"]
     requests.post(data=json.dumps(body), headers=headers, url=url)
 
 
@@ -144,19 +144,6 @@ def ModifierCheck(mod, iterable):
         index = next((index for (index, d) in enumerate(iterable)
                       if isinstance(d, dict) and d['name'] == mod), False)
     return index
-
-
-async def ModifierValue(ctx, converter, value):
-    try:
-        v = await converter.convert(ctx, value)
-    except AttributeError:
-        try:
-            v = converter(value)
-        except ValueError:
-            raise BadArgument(
-                f"`{value}` is not a vaild value for this modifier.")
-    return v
-
 
 async def SendFirstTournamentMessage(ctx):
     user = ctx.author
