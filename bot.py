@@ -45,7 +45,7 @@ async def on_disconnect():
 async def on_reaction_add(reaction, user):
     if user == client.user:
         return  # Ignore reactions from the bot
-    if reaction.message.id == to_cog.tournament.msg.id:
+    if to_cog.tournament.msg is not None and reaction.message.id == to_cog.tournament.msg.id:
         ctx = await client.get_context(to_cog.tournament.msg)
         ctx.author = user
         ctx.message.author = user

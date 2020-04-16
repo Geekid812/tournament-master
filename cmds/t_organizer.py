@@ -5,7 +5,8 @@ from time import strftime
 from dateutil import parser
 from inspect import Parameter
 from discord.ext import commands
-from discord import Color, Embed
+from discord import Color, Embed, HTTPException
+from asyncio import TimeoutError
 from classes.tournament import Tournament, Status
 from classes.perms import is_authorized, allowed_channels, authorized
 from classes.emote import Emote
@@ -26,7 +27,7 @@ class ModifierUtils:  # Method class for modifier parsing
         prizetypes = ['NonDividable', 'ForEach', 'NoClaim']
         if type_ in prizetypes:
             return type_
-        raise commands.errors.BadArgument(
+        raise commands.BadArgument(
             f"`{type_}` is not a valid prize type.")
 
     @classmethod
@@ -37,10 +38,9 @@ class ModifierUtils:  # Method class for modifier parsing
             try:
                 v = converter(value)
             except ValueError:
-                raise commands.errors.BadArgument(
+                raise commands.BadArgument(
                     f"`{value}` is not a vaild value for this modifier.")
         return v
-
 
 
 class Checklist:  # A class used for the IGN checklist
@@ -133,7 +133,7 @@ class TOrganizer(commands.Cog):
     @is_authorized(to=True)
     async def tset(self, ctx, attribute, *, value):
         if attribute not in self.attr:
-            raise commands.errors.BadArgument(
+            raise commands.BadArgument(
                 f"`{attribute}` is not a valid tournament attribute.")
         if attribute == 'host':
             value = await commands.MemberConverter().convert(ctx, value)
@@ -141,7 +141,7 @@ class TOrganizer(commands.Cog):
             try:
                 parser.parse(value, dayfirst=True)
             except ValueError:
-                raise commands.errors.BadArgument(
+                raise commands.BadArgument(
                     f"`{value}` is not a valid time format. Refer to the pinned messages for a list of time formats.")
 
         old_value = getattr(self.tournament, attribute)
@@ -179,7 +179,7 @@ class TOrganizer(commands.Cog):
     @is_authorized(to=True)
     async def treset(self, ctx):
         if self.tournament.status >= 2:
-            raise commands.errors.BadArgument(
+            raise commands.BadArgument(
                 f"The tournament is ongoing and cannot be reset. Please try to use `;cancel` instead.")
 
         self.tournament = Tournament()
@@ -193,7 +193,7 @@ class TOrganizer(commands.Cog):
     @is_authorized(to=True)
     async def tplan(self, ctx):
         if self.tournament.status != Status.Pending:
-            raise commands.errors.BadArgument(
+            raise commands.BadArgument(
                 f"The tournament cannot be scheduled at the moment.")
 
         req = ['name', 'host', 'time']
@@ -203,7 +203,7 @@ class TOrganizer(commands.Cog):
                 missing.append("`"+attr+"`")
         if missing != []:
             items = " and ".join(item for item in missing)
-            raise commands.errors.BadArgument(
+            raise commands.BadArgument(
                 f"You have not specified a {items} for the tournament.")
 
         embed = Embed(title=self.tournament.name, color=Color.orange())
@@ -273,7 +273,7 @@ class TOrganizer(commands.Cog):
         i = ModifierCheck(modifier, self.modifiers)
 
         if i is False:
-            raise commands.errors.BadArgument(
+            raise commands.BadArgument(
                 f"Unknown modifier `{modifier}`.")
 
         if value is None and modifier not in self.modifiers:
@@ -281,7 +281,7 @@ class TOrganizer(commands.Cog):
                 Parameter('value', Parameter.KEYWORD_ONLY))
 
         if ModifierCheck(modifier, self.tournament.modifiers) is not False:
-            raise commands.errors.BadArgument(
+            raise commands.BadArgument(
                 f"`{modifier}` has already been added to the tournament.")
 
         modifier = self.modifiers[i]
@@ -296,7 +296,8 @@ class TOrganizer(commands.Cog):
             await ctx.send(f"{Emote.check} `{modifier}` is now active for this tournament.")
 
         self.tournament.modifiers.append(modifier)
-        if isinstance(modifier, dict): modifier = modifier['name']
+        if isinstance(modifier, dict):
+            modifier = modifier['name']
         Log("Modifier Added",
             description=f"{ctx.author.mention} added the modifier `{modifier}` to **{self.tournament.name}**.",
             color=Color.dark_teal(),
@@ -308,15 +309,16 @@ class TOrganizer(commands.Cog):
         i = ModifierCheck(modifier, self.tournament.modifiers)
 
         if i is False:
-            raise commands.errors.BadArgument(
+            raise commands.BadArgument(
                 f"`{modifier}` is not active.")
 
         modifier = self.tournament.modifiers[i]
         if isinstance(modifier, str):
-            raise commands.errors.BadArgument(f"The value for `{modifier}` cannot be edited.")
+            raise commands.BadArgument(
+                f"The value for `{modifier}` cannot be edited.")
 
         old_value = modifier['value']
-        j = self.modifiers[ModifierCheck(modifier['name'],self.modifiers)]
+        j = self.modifiers[ModifierCheck(modifier['name'], self.modifiers)]
         modifier['value'] = await ModifierUtils.convert_value(ctx, j['value'], value)
 
         if old_value == modifier['value']:
@@ -337,8 +339,9 @@ class TOrganizer(commands.Cog):
         i = ModifierCheck(modifier, self.tournament.modifiers)
 
         if i is False:
-            raise commands.errors.BadArgument(f"Modifier `{modifier}` is not active on this tournament.")
-        
+            raise commands.BadArgument(
+                f"Modifier `{modifier}` is not active on this tournament.")
+
         old = self.tournament.modifiers[i]
         self.tournament.modifiers.pop(i)
         await ctx.send(f"{Emote.check} `{modifier}` has been removed.")
@@ -354,7 +357,7 @@ class TOrganizer(commands.Cog):
     @is_authorized(to=True)
     async def start(self, ctx):
         if self.tournament.status >= 3:
-            raise commands.errors.BadArgument(
+            raise commands.BadArgument(
                 "The tournament has already started.")
 
         req = ['name', 'host', 'roles']
@@ -364,7 +367,7 @@ class TOrganizer(commands.Cog):
                 missing.append("`"+attr+"`")
         if missing != []:
             items = " and ".join(item for item in missing)
-            raise commands.errors.BadArgument(
+            raise commands.BadArgument(
                 f"You have not specified a {items} for the tournament.")
 
         if self.roles.temp_host not in self.tournament.host.roles:
@@ -500,9 +503,9 @@ class TOrganizer(commands.Cog):
         else:
             raise commands.BadArgument("You are not in a tournament!")
 
-    @commands.command(aliases=['tclose'])
+    @commands.command(aliases=['tclose', 'tbegin', 'close'])
     @is_authorized(to=True)
-    async def tbegin(self, ctx):
+    async def begin(self, ctx):
         if self.tournament.status != Status.Opened:
             raise commands.BadArgument(
                 "The tournament cannot be closed right now.")
@@ -518,3 +521,55 @@ class TOrganizer(commands.Cog):
         await self.tournament.msg.clear_reactions()
         embed = UpdatedEmbed(self.tournament)
         await self.tournament.msg.edit(embed=embed)
+
+    @commands.command(aliases=['tcancel'])
+    @is_authorized(to=True)
+    async def cancel(self, ctx):
+        if self.tournament.status not in (3, 4):
+            raise commands.BadArgument("The tournament has not started.")
+
+        await ctx.send("Are you sure you want to cancel this tournament? `yes`/`no`")
+
+        def check(m):
+            return m.author == ctx.message.author and m.channel == ctx.message.channel
+
+        try:
+            msg = await self.client.wait_for('message', check=check, timeout=30)
+        except TimeoutError:
+            raise commands.BadArgument("Command cancelled.")
+
+        if msg.content.lower() == "no":
+            raise commands.BadArgument(
+                "Alright, the tournament will not be cancelled.")
+        if msg.content.lower() != "yes":
+            raise commands.BadArgument(
+                "Invalid choice. Please type the command again to retry.")
+
+        cancel_msg = await ctx.send(":flag_white: Cancelling...")
+
+        async def purge_role(role):
+            for member in role.members:
+                try:
+                    await member.remove_roles(role)
+                except HTTPException:
+                    pass
+
+        await purge_role(self.roles.participant)
+        await purge_role(self.roles.temp_host)
+        await purge_role(self.roles.spectator)
+
+        try:
+            await self.tournament.msg.delete()
+        except HTTPException:
+            pass
+        # TODO No tournaments message
+
+        try:
+            await cancel_msg.edit(content=":flag_white: Tournament cancelled.")
+        except HTTPException:
+            pass
+
+        Log("Tournament Cancelled",
+            description=f"{ctx.author.mention} cancelled **{self.tournament.name}**.",
+            color=Color.from_rgb(40,40,40))
+        self.tournament = Tournament()
