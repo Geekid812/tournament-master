@@ -14,10 +14,10 @@ class User:
         user_id = str(user_id)
         user = cursor.execute(
             "SELECT * FROM users WHERE ID=?", (user_id,)).fetchone()
+        member = await MemberConverter().convert(ctx, user_id)
+        username = f"{member.name}#{member.discriminator}"
 
         if user is None:  # New User
-            member = await MemberConverter().convert(ctx, user_id)
-            username = f"{member.name}#{member.discriminator}"
             print("New database user: " + username)
             cursor.execute(
                 "INSERT INTO users (ID, username) VALUES (?,?)", (user_id, username))
@@ -29,6 +29,9 @@ class User:
         attributes = [description[0] for description in cursor.description]
         for i in range(len(attributes)):
             setattr(self, "_" + attributes[i], user[i])
+        
+        # Always update username
+        if self.username != username: self.username = username
         return User()
 
     @property
