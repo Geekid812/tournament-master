@@ -512,6 +512,14 @@ class TOrganizer(commands.Cog):
         if len(self.tournament.get_participants()) < 1:
             raise commands.BadArgument(
                 "There are no participants in the tournament.")
+        
+        no_ign = ""
+        for player in self.tournament.participants:
+            user = await User.from_id(ctx, player.id)
+            if user.ign is None: no_ign += f"**{player.name}**\n"
+        
+        if no_ign != "":
+            raise commands.BadArgument("Some players do not have an IGN set: \n" + no_ign)
 
         await ctx.send(f"{Emote.check} The tournament has been closed. Players can no longer join!")
         self.tournament.status = Status.Closed
