@@ -6,7 +6,7 @@ from dateutil import parser
 from inspect import Parameter
 from discord.ext import commands
 from discord import Color, Embed, HTTPException
-from asyncio import TimeoutError
+from asyncio import TimeoutError as Timeout
 from classes.tournament import Tournament, Status
 from classes.perms import is_authorized, allowed_channels, authorized
 from classes.emote import Emote
@@ -543,7 +543,7 @@ class TOrganizer(commands.Cog):
 
         try:
             msg = await self.client.wait_for('message', check=check, timeout=30)
-        except TimeoutError:
+        except Timeout:
             raise commands.BadArgument("Command cancelled.")
 
         if msg.content.lower() == "no":
