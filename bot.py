@@ -9,6 +9,7 @@ import traceback
 from core import ReadJSON, UpdatedPresence, Log
 from classes.emote import Emote
 from cmds.t_organizer import TOrganizer, TournamentJoinException
+from cmds.stats import Stats
 
 config = ReadJSON("config.json")
 tokens = ReadJSON("tokens.json")
@@ -28,11 +29,14 @@ async def on_ready():
     global starting
     if starting:
         global to_cog
+        global stats_cog
         starting = False
         to_cog = TOrganizer(client)
+        stats_cog = Stats(client)
 
         client.add_check(commands.guild_only())
         client.add_cog(to_cog)
+        client.add_cog(stats_cog)
 
 # Disconnect Event
 @client.event
