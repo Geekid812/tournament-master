@@ -50,17 +50,18 @@ async def on_reaction_add(reaction, user):
         ctx.author = user
         ctx.message.author = user
         await reaction.remove(user)
-        if reaction.emoji == "\u2795":  # Join button
+        if str(reaction.emoji) == Emote.join:  # Join button
             ctx.command = client.get_command("join")
-        elif reaction.emoji == "📽️":  # Spectate button
+        elif str(reaction.emoji) == "📽️":  # Spectate button
             ctx.command = client.get_command("spectate")
         await client.invoke(ctx)
-    else:
+    elif to_cog.checklist.msg is not None and reaction.message.id == to_cog.checklist.msg.id:
         await UpdateChecklist(reaction)
 
 @client.event
 async def on_reaction_remove(reaction, user):
-    await UpdateChecklist(reaction)
+    if to_cog.checklist.msg is not None and reaction.message.id == to_cog.checklist.msg.id:
+        await UpdateChecklist(reaction)
 
 async def UpdateChecklist(reaction):
     if to_cog.checklist is not None and reaction.message.id == to_cog.checklist.msg.id:

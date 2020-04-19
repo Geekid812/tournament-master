@@ -2,6 +2,7 @@
 
 from discord import Embed
 from core import ModifierCheck
+from classes.emote import Emote
 
 
 class Status:
@@ -73,7 +74,7 @@ class Tournament():
 
         # Tournament Modifiers and Joins
         if self.status == Status.Opened:
-            embed.add_field(name="You can join the tournament by adding a \u2795 reaction to this message.",
+            embed.add_field(name=f"You can join the tournament by adding a {Emote.join} reaction to this message.",
                             value=f"You can also type `;join` in <#553886807373381635> to enter the game.",
                             inline=False)
 

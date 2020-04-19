@@ -386,7 +386,7 @@ class TOrganizer(commands.Cog):
         except AttributeError:
             pass
         self.tournament.msg = await self.channels.t_channel.send("Text", embed=embed)
-        await self.tournament.msg.add_reaction("\u2795")
+        await self.tournament.msg.add_reaction(Emote.join)
         if ModifierCheck("SpectatorsAllowed", self.tournament.modifiers) is not False:
             await self.tournament.msg.add_reaction("📽️")
 
@@ -406,7 +406,7 @@ class TOrganizer(commands.Cog):
             raise TournamentJoinException(
                 f"the tournament is full! The maximum number of participants is **{str(max_count)}**.")
 
-        join_msg = f"{ctx.author.mention} joined. **{str(player_count + 1)}** players are now ready."
+        join_msg = f"{Emote.join} {ctx.author.mention} joined. **{str(player_count + 1)}** players are now ready."
         if player_count == 0:  # First join, make singular
             i = join_msg[-35:].index("s are") + len(join_msg) - 35
             join_msg = join_msg[:i] + " is" + join_msg[i+5:]
@@ -444,7 +444,7 @@ class TOrganizer(commands.Cog):
             raise TournamentJoinException("you are already a spectator!")
 
         spec_count = len(self.tournament.spectators)
-        join_msg = f"{ctx.author.mention} joined the spectators. **{str(spec_count + 1)}** spectators are now watching the tournament."
+        join_msg = f"{Emote.join} {ctx.author.mention} joined the spectators. **{str(spec_count + 1)}** spectators are now watching the tournament."
         if spec_count == 0:  # First join, make singular
             i = join_msg[-35:].index("s are") + len(join_msg) - 35
             join_msg = join_msg[:i] + " is" + join_msg[i+5:]
@@ -482,7 +482,7 @@ class TOrganizer(commands.Cog):
             if ctx.author in self.tournament.winners:
                 self.tournament.winners.remove(ctx.author)
             self.tournament.remove_participant(ctx.author)
-            await ctx.send(f"{ctx.author.mention} left the tournament.")
+            await ctx.send(f"{Emote.leave} {ctx.author.mention} left the tournament.")
             Log("Participant Left",
                 description=f"{ctx.author.mention} left **{self.tournament.name}**.", color=Color.dark_gold())
 
