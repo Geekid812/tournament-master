@@ -1,6 +1,7 @@
 # User Object
 
 import sqlite3
+import math
 from discord.ext.commands import MemberConverter
 
 conn = sqlite3.connect("data/database.db")
@@ -152,3 +153,18 @@ class User:
         self._xp = value
         cursor.execute("UPDATE users SET xp=? WHERE ID=?", (value, self.id))
         conn.commit()
+    
+    @property
+    def progress_bar(self):
+        xp_required = self.level * 100
+        box_completed = math.floor(self.xp / xp_required * 10)
+        box_missing = 10 - box_completed
+        bar = ""
+        
+        for i in range(box_completed):
+            bar += ":blue_square:"
+        
+        for i in range(box_missing):
+            bar += ":white_large_square:"
+        
+        return bar
