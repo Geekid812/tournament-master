@@ -38,21 +38,30 @@ class Stats(commands.Cog):
             win_rate = None
         
         if user.ign is not None:
-            ign_text = "**In-Game Name:** " + user.ign
+            ign_text = user.ign
         else:
-            ign_text = "In-Game Name unknown."
+            ign_text = "`None`"
+        
+        xp_required = user.level * 100
+        xp_percentage = int(user.xp / xp_required * 100)
+        full_progress = f"{user.progress_bar} `{xp_percentage}%`"
+        xp_info = f"Level **{user.level}**\n{user.xp}/{xp_required}\n"
 
         embed = discord.Embed(
-            title="Tournament Statictics",
-            description=ign_text,
+            title="Tournament Statistics",
             color=target.color)
         username = target.name + "#" + target.discriminator
         embed.set_author(name=username)
         embed.set_thumbnail(url=target.avatar_url)
 
+        embed.add_field(name="In-Game Name", value=ign_text)
         embed.add_field(name="Tournaments Joined", value=user.participations)
+        embed.add_field(name="Tournaments Hosted", value=user.hosted)
         embed.add_field(name="Wins", value=user.wins)
         embed.add_field(name="Losses", value=losses)
         embed.add_field(name="Win Rate", value=win_rate)
+        embed.add_field(name="Current Win Streak", value=user.streak)
+        embed.add_field(name="Max Win Streak", value=user.max_streak)
+        embed.add_field(name="Experience", value=xp_info + full_progress, inline=False)
 
         await ctx.send(embed=embed)
