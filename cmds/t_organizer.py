@@ -4,6 +4,7 @@
 from time import strftime
 from dateutil import parser
 from inspect import Parameter
+from discord import Member
 from discord.ext import commands
 from discord import Color, Embed, HTTPException
 from asyncio import TimeoutError as Timeout
@@ -581,3 +582,41 @@ class TOrganizer(commands.Cog):
             description=f"{ctx.author.mention} cancelled **{self.tournament.name}**.",
             color=Color.from_rgb(40,40,40))
         self.tournament = Tournament()
+
+    @commands.command(aliases=['winner'])
+    @is_authorized(to=True)
+    async def w(self, ctx, user : Member):
+        if self.tournament.status != 4:
+            raise commands.BadArgument("The tournament must have begun in order to add winners.")
+
+        if user not in self.tournament.participants and user != self.tournament.host:
+            raise commands.BadArgument("This user is not in the tournament.")
+
+        if user in self.tournament.winners:
+            raise commands.BadArgument("This user is already a winner.")
+
+        self.tournament.winners.append(user)
+        await ctx.send(f":medal: Added **{user.name}** to the winners.")
+
+        Log("Winner Added",
+            description=f"{ctx.author.mention} added {user.mention} to the winners of **{self.tournament.name}**.",
+            color=Color.from_rgb(200,200,0))
+
+    @commands.command(aliases=['rwinner'])
+    @is_authorized(to=True)
+    async def rw(self, ctx, user : Member):
+        if self.tournament.status != 4:
+            raise commands.BadArgument("The tournament must have begun in order to add winners.")
+
+        if user not in self.tournament.participants and user != self.tournament.host:
+            raise commands.BadArgument("This user is not in the tournament.")
+
+        if user not in self.tournament.winners:
+            raise commands.BadArgument("This user is not a winner.")
+
+        self.tournament.winners.remove(user)
+        await ctx.send(f":heavy_minus_sign: Removed **{user.name}** from the winners.")
+
+        Log("Winner Removed",
+            description=f"{ctx.author.mention} removed {user.mention} from the winners of **{self.tournament.name}**.",
+            color=Color.from_rgb(200,200,0))
