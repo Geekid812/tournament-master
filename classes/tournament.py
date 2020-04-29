@@ -113,3 +113,43 @@ class Tournament():
             if user is not False:
                 participants.append(user)
         return participants
+    
+    def calculate_xp_for(self, player, streak):
+        '''
+        Participation: 50xp
+        Winner: 100xp
+        Solo win: 50xp
+        Win streak: 25xp * streak
+        Full tournament: 25xp
+        '''
+        xp = 50 # Default for participation
+        summary = "Participation: `50xp`"
+        
+        if player in self.winners:
+            xp += 100
+            summary += "\nWinner: `100xp`"
+
+            if len(self.winners) == 1:
+                xp += 50
+                summary += "\nSolo Win: `50xp`"
+        
+            if streak >= 2:
+                add = streak * 25
+                xp += add
+                summary += f"\n{streak}x Win Streak: `{add}xp`"
+
+        player_count = len(self.participants)
+        mindex = ModifierCheck('MaxParticipants', self.modifiers)
+
+        if mindex is not False:
+            max_players = self.modifiers[mindex]['value']
+        else:
+            max_players = 15
+
+        if player_count == max_players:
+            xp += 25
+            summary += "\nFull Tournament: `25xp`"
+        
+        summary += f"\n\n**Total:** `{xp}xp`"
+
+        return summary, xp

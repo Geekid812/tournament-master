@@ -556,6 +556,19 @@ class TOrganizer(commands.Cog):
 
         cancel_msg = await ctx.send(":flag_white: Cancelling...")
 
+        await self.cleanup()
+
+        try:
+            await cancel_msg.edit(content=":flag_white: Tournament cancelled.")
+        except HTTPException:
+            pass
+
+        Log("Tournament Cancelled",
+            description=f"{ctx.author.mention} cancelled **{self.tournament.name}**.",
+            color=Color.from_rgb(40,40,40))
+        self.tournament = Tournament()
+    
+    async def cleanup(self):
         async def purge_role(role):
             for member in role.members:
                 try:
@@ -572,16 +585,6 @@ class TOrganizer(commands.Cog):
         except HTTPException:
             pass
         # TODO No tournaments message
-
-        try:
-            await cancel_msg.edit(content=":flag_white: Tournament cancelled.")
-        except HTTPException:
-            pass
-
-        Log("Tournament Cancelled",
-            description=f"{ctx.author.mention} cancelled **{self.tournament.name}**.",
-            color=Color.from_rgb(40,40,40))
-        self.tournament = Tournament()
 
     @commands.command(aliases=['winner'])
     @is_authorized(to=True)
@@ -620,3 +623,86 @@ class TOrganizer(commands.Cog):
         Log("Winner Removed",
             description=f"{ctx.author.mention} removed {user.mention} from the winners of **{self.tournament.name}**.",
             color=Color.from_rgb(200,200,0))
+    
+    @commands.command(aliases=['tend'])
+    @is_authorized(to=True)
+    async def end(self, ctx):
+        if self.tournament.status != 4:
+            raise commands.BadArgument("The tournament must have begun before you can end it. If you are trying to cancel, use the `;cancel` command.")
+
+        if self.tournament.winners == []:
+            await ctx.send("The winners list is empty! Are you sure you want to end this tournament? `yes`/`no`")
+
+            def check(m):
+                return m.author == ctx.message.author and m.channel == ctx.message.channel
+
+            try:
+                msg = await self.client.wait_for('message', check=check, timeout=30)
+            except Timeout:
+                raise commands.BadArgument("Command cancelled.")
+
+            if msg.content.lower() == "no":
+                raise commands.BadArgument(
+                    "Alright, I will not end the tournament yet.")
+            if msg.content.lower() != "yes":
+                raise commands.BadArgument(
+                    "Invalid choice. Please type the command again to retry.")
+        
+        # OK to end from here
+
+        await ctx.send(":checkered_flag: Thanks for playing! The tournament has ended!")
+
+        await self.cleanup()
+
+        for player in self.tournament.participants:
+            user = await User.from_id(ctx, player.id)
+            summary, xp = self.tournament.calculate_xp_for(player, user.streak)
+
+            new_xp = user.xp + xp
+            level_up = False
+
+            while new_xp >= user.level * 100: # New level reached
+                level_up = True
+                new_xp -= user.level * 100
+                user.level += 1
+            
+            user.xp = new_xp
+
+            embed = Embed(title=self.tournament.name)
+
+            if player in self.tournament.winners:
+                embed.color = Color.from_rgb(200,200,0)
+                embed.description = "\n**You won!** :tada:"
+
+                user.streak += 1
+                user.streak_age = 0
+                embed.description += f"\nYou're now on a **{user.streak}** win streak!"
+                
+                if user.streak > user.max_streak:
+                    embed.description += "\nYou have beaten your best win streak! Congratulations!"
+                    user.max_streak = user.streak
+
+                elif user.streak == user.max_streak:
+                    embed.description += "\nYou are tied with your best win streak!"
+                
+                else:
+                    embed.description += f"\nYou're on your way to beat your best win streak of **{user.max_streak}**!"
+                
+            else:
+                embed.color = Color.red()
+                embed.description = f"\n **You lost!** :frowning:\nYou lost your win streak of {user.streak}."
+            
+            xp_required = user.level * 100
+            xp_percentage = int(user.xp / xp_required * 100)
+            full_progress = f"{user.progress_bar} `{xp_percentage}%`"
+            xp_info = f"Level **{user.level}**\n{user.xp}/{xp_required}\n"
+            lvl_up_message = ""
+
+            if level_up:
+                lvl_up_message = f"\n\nYou leveled up to level **{user.level}**! :partying_face:"
+
+            embed.add_field(name="Experience", value=summary + "\n\n" + xp_info + full_progress + lvl_up_message)
+            embed.set_footer(text="Want to see more statistics? Check out the ;stats command in #bot-commands!")
+            embed.set_author(name="Results")
+
+            await player.send(embed=embed)
