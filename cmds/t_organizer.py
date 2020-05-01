@@ -114,7 +114,7 @@ class TOrganizer(commands.Cog):
     def __init__(self, client):
         self.client = client
         self.tournament = Tournament()
-        # self.tournaments = ReadJSON("tournaments.json")
+        self.queue = Tournament.get_tournaments()
         self.attr = ['name', 'time', 'prize', 'host', 'roles', 'note']
         self.channels = Channel(client)
         self.roles = Role(client)
@@ -231,7 +231,8 @@ class TOrganizer(commands.Cog):
             color=Color.orange(), fields=[{"name": "Host", "value": self.tournament.host},
                                           {"name": "Time", "value": self.tournament.time}])
         self.tournament.status = Status.Scheduled
-        # self.tournaments.append(self.tournament.todict()) TODO fix this
+        self.tournament.save()
+        self.queue.append(self.tournament)
         self.tournament = Tournament()
 
     @commands.group(aliases=['modifiers', 'modifers', 'modifer'])
@@ -706,3 +707,7 @@ class TOrganizer(commands.Cog):
             embed.set_author(name="Results")
 
             await player.send(embed=embed)
+
+    @commands.command()
+    async def print_queue(self, ctx):
+        print(self.queue)

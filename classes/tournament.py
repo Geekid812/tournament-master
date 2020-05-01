@@ -1,8 +1,16 @@
 # Tournament Object
 
-from discord import Embed
+from discord import Embed, Object
 from core import ModifierCheck
 from classes.emote import Emote
+from core import ReadJSON
+from dateutil import parser
+from datetime import datetime
+import sqlite3
+
+conn = sqlite3.connect("data/database.db")
+
+cursor = conn.cursor()
 
 
 class Status:
@@ -16,6 +24,7 @@ class Status:
 
 class Tournament():
     def __init__(self):
+        self.id = None
         self.msg = None
         self.name = None
         self.time = None
@@ -153,3 +162,78 @@ class Tournament():
         summary += f"\n\n**Total:** `{xp}xp`"
 
         return summary, xp
+
+    def save(self):
+        attrs = {}
+        for attr in dir(self):
+            if not attr.startswith("_") and not callable(attr):
+                attrs[attr] = getattr(self, attr)
+        
+        attrs['host_id'] = attrs['host'].id
+        attrs['timestamp'] = parser.parse(attrs['time'], dayfirst=True, ignoretz=True).timestamp()
+
+        order = ('name','host_id','prize','timestamp','status','roles','note')
+        attrlist = []
+
+        for attr in order:
+            attrlist.append(attrs[attr])
+
+
+        tourney = cursor.execute(
+            "SELECT * FROM tournaments WHERE ID=?", (self.id,)).fetchone()
+
+        if tourney is None:
+            cursor.execute(
+                "INSERT INTO tournaments(name, host_id, prize, timestamp, status, roles, note) VALUES (?,?,?,?,?,?,?)", attrlist)
+            tourney = cursor.execute(
+                "SELECT ID FROM tournaments ORDER BY ID DESC").fetchone()
+            conn.commit()
+            self.id = tourney[0]
+            print(self.id)
+        
+        else:
+            cmd = "UPDATE tournaments SET "
+            update = []
+
+            for i in range(len(attrlist)):
+                
+                if attrlist[i] != tourney[i+1]:
+                    cmd += order[i] + "=?, "
+                    update.append(attrlist[i])
+            
+            cmd = cmd[:-2] + " WHERE ID=?"
+            update.append(self.id)
+
+            cursor.execute(cmd, update)
+            conn.commit()
+        
+    @classmethod
+    def get_tournaments(cls):
+        order = ('name','host_id','prize','timestamp','status','roles','note')
+        now = datetime.now().timestamp()
+        tourney_list = []
+
+        response = cursor.execute("SELECT * FROM tournaments WHERE timestamp>?", (now,)).fetchall()
+
+        for item in response:
+            tourney = cls()
+            info = item[1:7]
+
+            for i in range(len(info)):
+                value = info[i]
+                name = order[i]
+
+                if name == 'host_id':
+                    name = 'host'
+                    value = Object(value)
+
+                if name == 'timestamp':
+                    name = 'time'
+                    value = datetime.fromtimestamp(value)
+
+                setattr(tourney, name, value)
+            
+            tourney_list.append(tourney)
+        
+        return tourney_list
+                

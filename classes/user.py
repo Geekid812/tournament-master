@@ -14,17 +14,17 @@ class User:
     async def from_id(self, ctx, user_id):
         user_id = str(user_id)
         user = cursor.execute(
-            "SELECT * FROM users WHERE ID=?", (user_id,)).fetchone()
+            "SELECT * FROM stats WHERE ID=?", (user_id,)).fetchone()
         member = await MemberConverter().convert(ctx, user_id)
         username = f"{member.name}#{member.discriminator}"
 
         if user is None:  # New User
             print("New database user: " + username)
             cursor.execute(
-                "INSERT INTO users (ID, username) VALUES (?,?)", (user_id, username))
+                "INSERT INTO stats (ID, username) VALUES (?,?)", (user_id, username))
             conn.commit()
             user = cursor.execute(
-                "SELECT * FROM users WHERE ID=?", (user_id,)).fetchone()
+                "SELECT * FROM stats WHERE ID=?", (user_id,)).fetchone()
 
         # A list of all attributes
         attributes = [description[0] for description in cursor.description]
@@ -42,7 +42,7 @@ class User:
     @id.setter
     def id(self, value: int):
         self._ID = value
-        cursor.execute("UPDATE users SET ID=? WHERE ID=?", (value, self.id))
+        cursor.execute("UPDATE stats SET ID=? WHERE ID=?", (value, self.id))
         conn.commit()
 
     @property
@@ -52,7 +52,7 @@ class User:
     @username.setter
     def username(self, value: str):
         self._username = value
-        cursor.execute("UPDATE users SET username=? WHERE ID=?",
+        cursor.execute("UPDATE stats SET username=? WHERE ID=?",
                        (value, self.id))
         conn.commit()
 
@@ -63,7 +63,7 @@ class User:
     @ign.setter
     def ign(self, value: str):
         self._IGN = value
-        cursor.execute("UPDATE users SET IGN=? WHERE ID=?",
+        cursor.execute("UPDATE stats SET IGN=? WHERE ID=?",
                        (value, self.id))
         conn.commit()
 
@@ -75,7 +75,7 @@ class User:
     def participations(self, value: int):
         self._participations = value
         cursor.execute(
-            "UPDATE users SET participations=? WHERE ID=?", (value, self.id))
+            "UPDATE stats SET participations=? WHERE ID=?", (value, self.id))
         conn.commit()
 
     @property
@@ -85,7 +85,7 @@ class User:
     @wins.setter
     def wins(self, value: int):
         self._wins = value
-        cursor.execute("UPDATE users SET wins=? WHERE ID=?", (value, self.id))
+        cursor.execute("UPDATE stats SET wins=? WHERE ID=?", (value, self.id))
         conn.commit()
 
     @property
@@ -95,7 +95,7 @@ class User:
     @hosted.setter
     def hosted(self, value: int):
         self._hosted = value
-        cursor.execute("UPDATE users SET hosted=? WHERE ID=?",
+        cursor.execute("UPDATE stats SET hosted=? WHERE ID=?",
                        (value, self.id))
         conn.commit()
 
@@ -106,7 +106,7 @@ class User:
     @streak.setter
     def streak(self, value: int):
         self._streak = value
-        cursor.execute("UPDATE users SET streak=? WHERE ID=?",
+        cursor.execute("UPDATE stats SET streak=? WHERE ID=?",
                        (value, self.id))
         conn.commit()
 
@@ -120,7 +120,7 @@ class User:
             value = int(value)
         self._streak_age = value
         cursor.execute(
-            "UPDATE users SET streak_age=? WHERE ID=?", (value, self.id))
+            "UPDATE stats SET streak_age=? WHERE ID=?", (value, self.id))
         conn.commit()
 
     @property
@@ -131,7 +131,7 @@ class User:
     def max_streak(self, value: int):
         self._max_streak = value
         cursor.execute(
-            "UPDATE users SET max_streak=? WHERE ID=?", (value, self.id))
+            "UPDATE stats SET max_streak=? WHERE ID=?", (value, self.id))
         conn.commit()
 
     @property
@@ -141,7 +141,7 @@ class User:
     @level.setter
     def level(self, value: int):
         self._level = value
-        cursor.execute("UPDATE users SET level=? WHERE ID=?", (value, self.id))
+        cursor.execute("UPDATE stats SET level=? WHERE ID=?", (value, self.id))
         conn.commit()
 
     @property
@@ -151,7 +151,7 @@ class User:
     @xp.setter
     def xp(self, value: int):
         self._xp = value
-        cursor.execute("UPDATE users SET xp=? WHERE ID=?", (value, self.id))
+        cursor.execute("UPDATE stats SET xp=? WHERE ID=?", (value, self.id))
         conn.commit()
     
     @property
