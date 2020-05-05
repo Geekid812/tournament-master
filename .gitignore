@@ -6,3 +6,6 @@ __pycache__
 
 # (TEMP) Ignore data folder
 data
+
+# Ignore Pycharm cache
+.idea/

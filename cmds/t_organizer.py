@@ -505,6 +505,35 @@ class TOrganizer(commands.Cog):
         else:
             raise commands.BadArgument("You are not in a tournament!")
 
+    @commands.command(aliases=['tkick'])
+    @is_authorized(to=True)
+    async def kick(self, ctx, user : Member):
+        if user in self.tournament.participants:
+            await user.remove_roles(self.roles.participant)
+            if user in self.tournament.winners:
+                self.tournament.winners.remove(user)
+            self.tournament.remove_participant(user)
+            await ctx.send(f"{Emote.leave} {ctx.author.mention} was kicked from the tournament.")
+            Log("Participant Kicked",
+                description=f"{ctx.author.mention} was kicked from **{self.tournament.name}** by {ctx.author.mention}.", color=Color.dark_gold())
+
+            embed = UpdatedEmbed(self.tournament)
+            await self.tournament.msg.edit(embed=embed)
+            await self.checklist.update(ctx, self.tournament)
+
+        elif user in self.tournament.spectators:
+            await user.remove_roles(self.roles.spectator)
+            self.tournament.spectators.remove(user)
+            await ctx.send(f"{ctx.author.mention} is no longer spectating the tournament.")
+            Log("Spectator Kicked",
+                description=f"{ctx.author.mention} was kicked from **{self.tournament.name}** by {ctx.author.mention}.", color=Color.dark_gold())
+
+            embed = UpdatedEmbed(self.tournament)
+            await self.tournament.msg.edit(embed=embed)
+
+        else:
+            raise commands.BadArgument("This user is not in a tournament!")
+
     @commands.command(aliases=['tclose', 'tbegin', 'close'])
     @is_authorized(to=True)
     async def begin(self, ctx):
