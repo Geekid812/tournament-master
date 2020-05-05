@@ -1,6 +1,7 @@
 # Tournament Organizer Cog
 
 # Importing Libraries
+import asyncio
 from time import strftime
 from dateutil import parser
 from inspect import Parameter
@@ -129,6 +130,13 @@ class TOrganizer(commands.Cog):
 
         self.tournament.name = "Testing"
         self.tournament.roles = "Empty"
+    
+    async def _eval(self, ctx, cmd):
+        try:
+            result = eval(cmd)
+        except SyntaxError:
+            result = exec(cmd)
+        return result
 
     @commands.command(aliases=['set'])
     @is_authorized(to=True)
@@ -740,3 +748,10 @@ class TOrganizer(commands.Cog):
     @commands.command()
     async def print_queue(self, ctx):
         print(self.queue)
+
+    @commands.command()
+    @commands.is_owner()
+    async def eval(self, ctx, *, cmd):
+        result = await self._eval(ctx, cmd)
+        if result != "":
+            await ctx.send(str(result))
