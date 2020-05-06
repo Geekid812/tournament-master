@@ -2,20 +2,21 @@
 
 # Importing Libraries
 import asyncio
-from time import strftime
-from dateutil import parser
 from inspect import Parameter
+from time import strftime
+
+from dateutil import parser
+from discord import Color, Embed, HTTPException
 from discord import Member
 from discord.ext import commands
-from discord import Color, Embed, HTTPException
-from asyncio import TimeoutError as Timeout
-from classes.tournament import Tournament, Status
-from classes.perms import is_authorized, allowed_channels, authorized
-from classes.emote import Emote
+
 from classes.channel import Channel
+from classes.emote import Emote
+from classes.perms import is_authorized, allowed_channels, authorized
 from classes.role import Role
+from classes.tournament import Tournament, Status
 from classes.user import User
-from core import Log, ReadJSON, TimeUntil, ModifierCheck, SendFirstTournamentMessage, UpdatedEmbed
+from core import Log, TimeUntil, ModifierCheck, UpdatedEmbed
 
 
 class TournamentJoinException(commands.CommandError):
@@ -24,16 +25,16 @@ class TournamentJoinException(commands.CommandError):
 
 
 class ModifierUtils:  # Method class for modifier parsing
-    @classmethod
-    def convert_to_prize_type(self, type_):
+    @staticmethod
+    def convert_to_prize_type(type_):
         prizetypes = ['NonDividable', 'ForEach', 'NoClaim']
         if type_ in prizetypes:
             return type_
         raise commands.BadArgument(
             f"`{type_}` is not a valid prize type.")
 
-    @classmethod
-    async def convert_value(self, ctx, converter, value):
+    @staticmethod
+    async def convert_value(ctx, converter, value):
         try:
             v = await converter.convert(ctx, value)
         except AttributeError:
@@ -47,16 +48,17 @@ class ModifierUtils:  # Method class for modifier parsing
 
 class Checklist:  # A class used for the IGN checklist
     @classmethod
-    async def create(self, ctx):
+    async def create(cls, ctx):
+        checklist = cls()
         embed = Embed(title="Player Checklist",
                       color=Color.dark_green())
 
-        self.embed = embed
-        self.msg = await ctx.send(embed=embed)
-        self.client = ctx.bot
-        self.emote_str = "123456789🇦🇧🇨🇩🇪🇫🇬🇭🇮🇯🇰🇱🇲🇳🇴🇵🇶🇷🇸🇹🇺🇻🇼🇽🇾🇿"
-        await self.msg.pin()
-        return Checklist()
+        checklist.embed = embed
+        checklist.msg = await ctx.send(embed=embed)
+        checklist.client = ctx.bot
+        checklist.emote_str = "123456789🇦🇧🇨🇩🇪🇫🇬🇭🇮🇯🇰🇱🇲🇳🇴🇵🇶🇷🇸🇹🇺🇻🇼🇽🇾🇿"
+        await checklist.msg.pin()
+        return checklist
 
     async def update(self, ctx, tournament):
         participant_list = tournament.participants
@@ -64,7 +66,7 @@ class Checklist:  # A class used for the IGN checklist
         p_count = len(participant_list)
         l_index = 0
 
-        host_ign = (await User.from_id(ctx, host.id)).ign
+        host_ign = (await User.fetch_by_id(ctx, host.id)).ign
         ign_list = [f"👑 {host.mention} - `{host_ign}`"]
 
         for i in range(p_count):
@@ -72,7 +74,7 @@ class Checklist:  # A class used for the IGN checklist
             if participant is False:  # Left User
                 l_index += 1
                 continue
-            player_ign = (await User.from_id(ctx, participant.id)).ign
+            player_ign = (await User.fetch_by_id(ctx, participant.id)).ign
             try:
                 emote = self.emote_str[i]
             except IndexError:  # Player count is over 35
@@ -100,7 +102,8 @@ class Checklist:  # A class used for the IGN checklist
                 continue
 
             async for user in reaction.users():
-                if user != self.client.user and authorized(ctx, user=user, to=True) or Role(self.client).temp_host in user.roles:
+                if user != self.client.user and authorized(ctx, user=user, to=True) or Role(
+                        self.client).temp_host in user.roles:
                     i -= l_index
                     ign_list[i] = "~~" + ign_list[i] + "~~"
 
@@ -124,13 +127,13 @@ class TOrganizer(commands.Cog):
                           {'name': 'MaxParticipants', 'value': int},
                           'SpectatorsAllowed',
                           {'name': 'PrizeType',
-                              'value': ModifierUtils.convert_to_prize_type},
+                           'value': ModifierUtils.convert_to_prize_type},
                           {'name': 'AutoGiveCoins', 'value': int},
                           {'name': 'AssistingTO', 'value': commands.MemberConverter()}]
 
         self.tournament.name = "Testing"
         self.tournament.roles = "Empty"
-    
+
     async def _eval(self, ctx, cmd):
         try:
             result = eval(cmd)
@@ -209,7 +212,7 @@ class TOrganizer(commands.Cog):
         missing = []
         for attr in req:
             if getattr(self.tournament, attr) is None:
-                missing.append("`"+attr+"`")
+                missing.append("`" + attr + "`")
         if missing != []:
             items = " and ".join(item for item in missing)
             raise commands.BadArgument(
@@ -374,7 +377,7 @@ class TOrganizer(commands.Cog):
         missing = []
         for attr in req:
             if getattr(self.tournament, attr) is None:
-                missing.append("`"+attr+"`")
+                missing.append("`" + attr + "`")
         if missing != []:
             items = " and ".join(item for item in missing)
             raise commands.BadArgument(
@@ -419,8 +422,8 @@ class TOrganizer(commands.Cog):
         join_msg = f"{Emote.join} {ctx.author.mention} joined. **{str(player_count + 1)}** players are now ready."
         if player_count == 0:  # First join, make singular
             i = join_msg[-35:].index("s are") + len(join_msg) - 35
-            join_msg = join_msg[:i] + " is" + join_msg[i+5:]
-        user = await User.from_id(ctx, ctx.author.id)
+            join_msg = join_msg[:i] + " is" + join_msg[i + 5:]
+        user = await User.fetch_by_id(ctx, ctx.author.id)
         if user.participations == 0:
             join_msg += "\nThis is the first tournament they are participating in. Welcome! 🎉"
             # await SendFirstTournamentMessage(ctx) TODO enable this after testing
@@ -457,7 +460,7 @@ class TOrganizer(commands.Cog):
         join_msg = f"{Emote.join} {ctx.author.mention} joined the spectators. **{str(spec_count + 1)}** spectators are now watching the tournament."
         if spec_count == 0:  # First join, make singular
             i = join_msg[-35:].index("s are") + len(join_msg) - 35
-            join_msg = join_msg[:i] + " is" + join_msg[i+5:]
+            join_msg = join_msg[:i] + " is" + join_msg[i + 5:]
 
         await ctx.author.add_roles(self.roles.spectator)
         await self.channels.t_chat.send(join_msg)
@@ -515,7 +518,7 @@ class TOrganizer(commands.Cog):
 
     @commands.command(aliases=['tkick'])
     @is_authorized(to=True)
-    async def kick(self, ctx, user : Member):
+    async def kick(self, ctx, user: Member):
         if user in self.tournament.participants:
             await user.remove_roles(self.roles.participant)
             if user in self.tournament.winners:
@@ -523,7 +526,8 @@ class TOrganizer(commands.Cog):
             self.tournament.remove_participant(user)
             await ctx.send(f"{Emote.leave} {ctx.author.mention} was kicked from the tournament.")
             Log("Participant Kicked",
-                description=f"{ctx.author.mention} was kicked from **{self.tournament.name}** by {ctx.author.mention}.", color=Color.dark_gold())
+                description=f"{ctx.author.mention} was kicked from **{self.tournament.name}** by {ctx.author.mention}.",
+                color=Color.dark_gold())
 
             embed = UpdatedEmbed(self.tournament)
             await self.tournament.msg.edit(embed=embed)
@@ -534,7 +538,8 @@ class TOrganizer(commands.Cog):
             self.tournament.spectators.remove(user)
             await ctx.send(f"{ctx.author.mention} is no longer spectating the tournament.")
             Log("Spectator Kicked",
-                description=f"{ctx.author.mention} was kicked from **{self.tournament.name}** by {ctx.author.mention}.", color=Color.dark_gold())
+                description=f"{ctx.author.mention} was kicked from **{self.tournament.name}** by {ctx.author.mention}.",
+                color=Color.dark_gold())
 
             embed = UpdatedEmbed(self.tournament)
             await self.tournament.msg.edit(embed=embed)
@@ -551,12 +556,12 @@ class TOrganizer(commands.Cog):
         if len(self.tournament.get_participants()) < 1:
             raise commands.BadArgument(
                 "There are no participants in the tournament.")
-        
+
         no_ign = ""
         for player in self.tournament.participants:
-            user = await User.from_id(ctx, player.id)
+            user = await User.fetch_by_id(ctx, player.id)
             if user.ign is None: no_ign += f"**{player.name}**\n"
-        
+
         if no_ign != "":
             raise commands.BadArgument("Some players do not have an IGN set: \n" + no_ign)
 
@@ -582,7 +587,7 @@ class TOrganizer(commands.Cog):
 
         try:
             msg = await self.client.wait_for('message', check=check, timeout=30)
-        except Timeout:
+        except asyncio.TimeoutError:
             raise commands.BadArgument("Command cancelled.")
 
         if msg.content.lower() == "no":
@@ -603,9 +608,9 @@ class TOrganizer(commands.Cog):
 
         Log("Tournament Cancelled",
             description=f"{ctx.author.mention} cancelled **{self.tournament.name}**.",
-            color=Color.from_rgb(40,40,40))
+            color=Color.from_rgb(40, 40, 40))
         self.tournament = Tournament()
-    
+
     async def cleanup(self):
         async def purge_role(role):
             for member in role.members:
@@ -626,7 +631,7 @@ class TOrganizer(commands.Cog):
 
     @commands.command(aliases=['winner'])
     @is_authorized(to=True)
-    async def w(self, ctx, user : Member):
+    async def w(self, ctx, user: Member):
         if self.tournament.status != 4:
             raise commands.BadArgument("The tournament must have begun in order to add winners.")
 
@@ -641,11 +646,11 @@ class TOrganizer(commands.Cog):
 
         Log("Winner Added",
             description=f"{ctx.author.mention} added {user.mention} to the winners of **{self.tournament.name}**.",
-            color=Color.from_rgb(200,200,0))
+            color=Color.from_rgb(200, 200, 0))
 
     @commands.command(aliases=['rwinner'])
     @is_authorized(to=True)
-    async def rw(self, ctx, user : Member):
+    async def rw(self, ctx, user: Member):
         if self.tournament.status != 4:
             raise commands.BadArgument("The tournament must have begun in order to add winners.")
 
@@ -660,13 +665,14 @@ class TOrganizer(commands.Cog):
 
         Log("Winner Removed",
             description=f"{ctx.author.mention} removed {user.mention} from the winners of **{self.tournament.name}**.",
-            color=Color.from_rgb(200,200,0))
-    
+            color=Color.from_rgb(200, 200, 0))
+
     @commands.command(aliases=['tend'])
     @is_authorized(to=True)
     async def end(self, ctx):
         if self.tournament.status != 4:
-            raise commands.BadArgument("The tournament must have begun before you can end it. If you are trying to cancel, use the `;cancel` command.")
+            raise commands.BadArgument(
+                "The tournament must have begun before you can end it. If you are trying to cancel, use the `;cancel` command.")
 
         if self.tournament.winners == []:
             await ctx.send("The winners list is empty! Are you sure you want to end this tournament? `yes`/`no`")
@@ -676,7 +682,7 @@ class TOrganizer(commands.Cog):
 
             try:
                 msg = await self.client.wait_for('message', check=check, timeout=30)
-            except Timeout:
+            except asyncio.TimeoutError:
                 raise commands.BadArgument("Command cancelled.")
 
             if msg.content.lower() == "no":
@@ -685,7 +691,7 @@ class TOrganizer(commands.Cog):
             if msg.content.lower() != "yes":
                 raise commands.BadArgument(
                     "Invalid choice. Please type the command again to retry.")
-        
+
         # OK to end from here
 
         await ctx.send(":checkered_flag: Thanks for playing! The tournament has ended!")
@@ -693,43 +699,43 @@ class TOrganizer(commands.Cog):
         await self.cleanup()
 
         for player in self.tournament.participants:
-            user = await User.from_id(ctx, player.id)
+            user = await User.fetch_by_id(ctx, player.id)
             summary, xp = self.tournament.calculate_xp_for(player, user.streak)
 
             new_xp = user.xp + xp
             level_up = False
 
-            while new_xp >= user.level * 100: # New level reached
+            while new_xp >= user.level * 100:  # New level reached
                 level_up = True
                 new_xp -= user.level * 100
                 user.level += 1
-            
+
             user.xp = new_xp
 
             embed = Embed(title=self.tournament.name)
 
             if player in self.tournament.winners:
-                embed.color = Color.from_rgb(200,200,0)
+                embed.color = Color.from_rgb(200, 200, 0)
                 embed.description = "\n**You won!** :tada:"
 
                 user.streak += 1
                 user.streak_age = 0
                 embed.description += f"\nYou're now on a **{user.streak}** win streak!"
-                
+
                 if user.streak > user.max_streak:
                     embed.description += "\nYou have beaten your best win streak! Congratulations!"
                     user.max_streak = user.streak
 
                 elif user.streak == user.max_streak:
                     embed.description += "\nYou are tied with your best win streak!"
-                
+
                 else:
                     embed.description += f"\nYou're on your way to beat your best win streak of **{user.max_streak}**!"
-                
+
             else:
                 embed.color = Color.red()
                 embed.description = f"\n **You lost!** :frowning:\nYou lost your win streak of {user.streak}."
-            
+
             xp_required = user.level * 100
             xp_percentage = int(user.xp / xp_required * 100)
             full_progress = f"{user.progress_bar} `{xp_percentage}%`"
@@ -746,12 +752,15 @@ class TOrganizer(commands.Cog):
             await player.send(embed=embed)
 
     @commands.command()
-    async def print_queue(self, ctx):
-        print(self.queue)
-
-    @commands.command()
     @commands.is_owner()
     async def eval(self, ctx, *, cmd):
         result = await self._eval(ctx, cmd)
         if result != "":
             await ctx.send(str(result))
+
+    @commands.command()
+    @commands.is_owner()
+    async def fetch(self, ctx, fetch_list):
+        fetch_list = [int(item) for item in fetch_list.split(",")]
+        res = await User.fetch_by_ids(ctx, fetch_list)
+        await ctx.send(str([user.id for user in res]))

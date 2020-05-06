@@ -28,7 +28,7 @@ class Stats(commands.Cog):
         if target is None:
             target = ctx.author
 
-        user = await User.from_id(ctx, target.id)
+        user = await User.fetch_by_id(ctx, target.id)
         losses = user.participations - user.wins
 
         if user.participations > 0:

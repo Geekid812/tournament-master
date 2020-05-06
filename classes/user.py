@@ -11,7 +11,16 @@ cursor = conn.cursor()
 
 class User:
     @classmethod
-    async def from_id(self, ctx, user_id):
+    def _create_instance_from_raw(cls, raw):
+        new_instance = cls()
+        attributes = [description[0] for description in cursor.description]
+        for i in range(len(attributes)):
+            setattr(new_instance, "_" + attributes[i], raw[i])
+
+        return new_instance
+
+    @classmethod
+    async def fetch_by_id(cls, ctx, user_id):
         user_id = str(user_id)
         user = cursor.execute(
             "SELECT * FROM stats WHERE ID=?", (user_id,)).fetchone()
@@ -26,14 +35,37 @@ class User:
             user = cursor.execute(
                 "SELECT * FROM stats WHERE ID=?", (user_id,)).fetchone()
 
-        # A list of all attributes
-        attributes = [description[0] for description in cursor.description]
-        for i in range(len(attributes)):
-            setattr(self, "_" + attributes[i], user[i])
-        
+        user_class = cls._create_instance_from_raw(user)
+
         # Always update username
-        if self.username != username: self.username = username
-        return User()
+        if user_class.username != username: user_class.username = username
+
+        return user_class
+
+    @classmethod
+    async def fetch_by_ids(cls, ctx, user_ids: list):
+        ids = tuple(user_ids)
+        result = []
+
+        if len(ids) == 1:
+            ids = str(ids)[:-2] + ")"
+        users = cursor.execute(f"SELECT * FROM stats WHERE ID IN {ids}").fetchall()
+
+        for user in users:
+            uid = user[0]
+            user_ids.remove(uid)
+
+            member = await MemberConverter().convert(ctx, str(uid))
+            username = f"{member.name}#{member.discriminator}"
+
+            new_user = User._create_instance_from_raw(user)
+
+            # Always update username
+            if new_user.username != username: new_user.username = username
+
+            result.append(new_user)
+
+        return result
 
     @property
     def id(self):
@@ -153,18 +185,18 @@ class User:
         self._xp = value
         cursor.execute("UPDATE stats SET xp=? WHERE ID=?", (value, self.id))
         conn.commit()
-    
+
     @property
     def progress_bar(self):
         xp_required = self.level * 100
         box_completed = math.floor(self.xp / xp_required * 10)
         box_missing = 10 - box_completed
         bar = ""
-        
+
         for i in range(box_completed):
             bar += ":blue_square:"
-        
+
         for i in range(box_missing):
             bar += ":white_large_square:"
-        
+
         return bar
