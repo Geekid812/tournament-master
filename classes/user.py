@@ -28,10 +28,8 @@ class User:
         username = f"{member.name}#{member.discriminator}"
 
         if user is None:  # New User
-            print("New database user: " + username)
             cursor.execute(
                 "INSERT INTO stats (ID, username) VALUES (?,?)", (user_id, username))
-            conn.commit()
             user = cursor.execute(
                 "SELECT * FROM stats WHERE ID=?", (user_id,)).fetchone()
 
@@ -39,6 +37,7 @@ class User:
 
         # Always update username
         if user_class.username != username: user_class.username = username
+        conn.commit()
 
         return user_class
 
@@ -58,13 +57,28 @@ class User:
             member = await MemberConverter().convert(ctx, str(uid))
             username = f"{member.name}#{member.discriminator}"
 
-            new_user = User._create_instance_from_raw(user)
+            new_user = cls._create_instance_from_raw(user)
 
             # Always update username
             if new_user.username != username: new_user.username = username
 
             result.append(new_user)
 
+        for user in user_ids: # New users
+            member = await MemberConverter().convert(ctx, str(user))
+            username = f"{member.name}#{member.discriminator}"
+
+            cursor.execute(
+                "INSERT INTO stats (ID, username) VALUES (?,?)", (user, username))
+
+            user = cursor.execute(
+                "SELECT * FROM stats WHERE ID=?", (user,)).fetchone()
+
+            new_user = cls._create_instance_from_raw(user)
+
+            result.append(new_user)
+
+        conn.commit()
         return result
 
     @property

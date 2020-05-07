@@ -213,7 +213,7 @@ class TOrganizer(commands.Cog):
         for attr in req:
             if getattr(self.tournament, attr) is None:
                 missing.append("`" + attr + "`")
-        if missing != []:
+        if missing:
             items = " and ".join(item for item in missing)
             raise commands.BadArgument(
                 f"You have not specified a {items} for the tournament.")
@@ -672,9 +672,10 @@ class TOrganizer(commands.Cog):
     async def end(self, ctx):
         if self.tournament.status != 4:
             raise commands.BadArgument(
-                "The tournament must have begun before you can end it. If you are trying to cancel, use the `;cancel` command.")
+                "The tournament must have begun before you can end it. If you are trying to cancel, use the `;cancel` "
+                "command.")
 
-        if self.tournament.winners == []:
+        if not self.tournament.winners:
             await ctx.send("The winners list is empty! Are you sure you want to end this tournament? `yes`/`no`")
 
             def check(m):
@@ -698,8 +699,11 @@ class TOrganizer(commands.Cog):
 
         await self.cleanup()
 
-        for player in self.tournament.participants:
-            user = await User.fetch_by_id(ctx, player.id)
+        id_list = [player.id for player in self.tournament.participants]
+        user_list = await User.fetch_by_ids(ctx, id_list)
+
+        for user in user_list:
+            player = [x for x in self.tournament.participants if x.id == user.id][0]
             summary, xp = self.tournament.calculate_xp_for(player, user.streak)
 
             new_xp = user.xp + xp
