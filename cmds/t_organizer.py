@@ -136,10 +136,14 @@ class TOrganizer(commands.Cog):
 
     async def _eval(self, ctx, cmd):
         try:
-            result = eval(cmd)
-        except SyntaxError:
-            result = exec(cmd)
-        return result
+            try:
+                result = eval(cmd)
+            except SyntaxError:
+                result = exec(cmd)
+
+            return result
+        except Exception as e:
+            raise commands.BadArgument("Eval raised an exception: `" + str(e) + "`")
 
     @commands.command(aliases=['set'])
     @is_authorized(to=True)
