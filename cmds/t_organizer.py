@@ -2,6 +2,7 @@
 
 # Importing Libraries
 import asyncio
+import discord
 from inspect import Parameter
 from time import strftime
 
@@ -66,7 +67,7 @@ class Checklist:  # A class used for the IGN checklist
         p_count = len(participant_list)
         l_index = 0
 
-        host_ign = (await User.fetch_by_id(ctx, host.id)).ign
+        host_ign = ign_cache[host.id]
         ign_list = [f"👑 {host.mention} - `{host_ign}`"]
 
         for i in range(p_count):
@@ -74,7 +75,7 @@ class Checklist:  # A class used for the IGN checklist
             if participant is False:  # Left User
                 l_index += 1
                 continue
-            player_ign = (await User.fetch_by_id(ctx, participant.id)).ign
+            player_ign = ign_cache[participant.id]
             try:
                 emote = self.emote_str[i]
             except IndexError:  # Player count is over 35
@@ -113,6 +114,8 @@ class Checklist:  # A class used for the IGN checklist
         self.embed.description = text
         await self.msg.edit(embed=self.embed)
 
+
+ign_cache = {}
 
 class TOrganizer(commands.Cog):
     def __init__(self, client):
@@ -382,13 +385,15 @@ class TOrganizer(commands.Cog):
         for attr in req:
             if getattr(self.tournament, attr) is None:
                 missing.append("`" + attr + "`")
-        if missing != []:
+        if missing:
             items = " and ".join(item for item in missing)
             raise commands.BadArgument(
                 f"You have not specified a {items} for the tournament.")
 
-        if self.roles.temp_host not in self.tournament.host.roles:
-            await self.tournament.host.add_roles(self.roles.temp_host)
+        await self.tournament.host.add_roles(self.roles.temp_host)
+        host_id = self.tournament.host.id
+        ign_cache[host_id] = User.fetch_attr_by_id(host_id, "IGN")
+        User.fetch_attr_by_id(host_id, "IGN")
 
         self.tournament.status = Status.Opened
         await ctx.message.add_reaction(Emote.check)
@@ -413,8 +418,10 @@ class TOrganizer(commands.Cog):
     @allowed_channels(["t_channel", "bot_cmds"])
     async def join(self, ctx):
         await self.CheckRequirements(ctx.author)
+
         player_count = len(self.tournament.get_participants())
         mod_index = ModifierCheck("MaxParticipants", self.tournament.modifiers)
+
         if mod_index is not False:
             max_count = self.tournament.modifiers[mod_index]['value']
         else:
@@ -424,10 +431,13 @@ class TOrganizer(commands.Cog):
                 f"the tournament is full! The maximum number of participants is **{str(max_count)}**.")
 
         join_msg = f"{Emote.join} {ctx.author.mention} joined. **{str(player_count + 1)}** players are now ready."
+
         if player_count == 0:  # First join, make singular
             i = join_msg[-35:].index("s are") + len(join_msg) - 35
             join_msg = join_msg[:i] + " is" + join_msg[i + 5:]
+
         user = await User.fetch_by_id(ctx, ctx.author.id)
+
         if user.participations == 0:
             join_msg += "\nThis is the first tournament they are participating in. Welcome! 🎉"
             # await SendFirstTournamentMessage(ctx) TODO enable this after testing
@@ -436,6 +446,7 @@ class TOrganizer(commands.Cog):
         else:
             join_msg += f"\nIGN: `{user.ign}`"
 
+        ign_cache[ctx.author.id] = user.ign
         await ctx.author.add_roles(self.roles.participant)
         await ctx.author.remove_roles(self.roles.spectator)
         await self.channels.t_chat.send(join_msg)

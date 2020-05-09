@@ -64,7 +64,7 @@ class User:
 
             result.append(new_user)
 
-        for user in user_ids: # New users
+        for user in user_ids:  # New users
             member = await MemberConverter().convert(ctx, str(user))
             username = f"{member.name}#{member.discriminator}"
 
@@ -80,6 +80,28 @@ class User:
 
         conn.commit()
         return result
+
+    @classmethod
+    def fetch_attr_by_id(cls, user_id, attr):
+        user_id = str(user_id)
+
+        value = cursor.execute(
+            f"SELECT {attr} FROM stats WHERE ID={user_id}").fetchone()
+
+        if value is None:
+            # Return default value
+
+            if attr == "level":  # Default value: 1
+                value = 1
+
+            elif attr in ["participations", "wins", "hosted", "xp", "streak", "max_streak"]:  # Default value: 0
+                value = 0
+
+            # The rest should have None as default values
+            return value
+
+        else:
+            return value[0]
 
     @property
     def id(self):
