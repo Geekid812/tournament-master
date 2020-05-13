@@ -13,6 +13,7 @@ from classes.emote import Emote
 from classes.channel import Channel
 from cmds.t_organizer import TOrganizer, TournamentJoinException
 from cmds.stats import Stats
+from cmds.debug import Debug
 
 config = ReadJSON("config.json")
 tokens = ReadJSON("tokens.json")
@@ -34,13 +35,16 @@ async def on_ready():
     if starting:
         global to_cog
         global stats_cog
+        global debug_cog
         starting = False
         to_cog = TOrganizer(client)
         stats_cog = Stats(client)
+        debug_cog = Debug(client, to_cog=to_cog, stats_cog=stats_cog)
 
         client.add_check(commands.guild_only())
         client.add_cog(to_cog)
         client.add_cog(stats_cog)
+        client.add_cog(debug_cog)
 
 
 # Disconnect Event
@@ -138,8 +142,8 @@ async def on_command_error(ctx: commands.Context, error):
             "Unable to send to send full traceback: "
             f"\nCause: `{str(type(e))}: {str(e)}`"
             f"\nMinimal Traceback: `{str(type(error))}: {str(error)}`")
-
-    traceback.print_exception(type(error), error, error.__traceback__)
+    finally:
+        traceback.print_exception(type(error), error, error.__traceback__)
 
 
 async def send_traceback(ctx, error):
@@ -180,11 +184,6 @@ async def send_traceback(ctx, error):
     tb_embed.add_field(name=context_info, value="```py\n" + line_content + "\n\n" + error_message + "```", inline=False)
 
     await Channel(client).error_logs.send(embed=tb_embed)
-
-
-@client.command()
-async def raisee(ctx):
-    raise EOFError
 
 
 # Run Client

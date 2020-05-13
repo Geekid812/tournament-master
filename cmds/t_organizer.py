@@ -798,13 +798,6 @@ class TOrganizer(commands.Cog):
 
     @commands.command()
     @commands.is_owner()
-    async def eval(self, ctx, *, cmd):
-        result = await self._eval(ctx, cmd)
-        if result != "":
-            await ctx.send(str(result))
-
-    @commands.command()
-    @commands.is_owner()
     async def fetch(self, ctx, fetch_list):
         fetch_list = [int(item) for item in fetch_list.split(",")]
         res = await User.fetch_by_ids(ctx, fetch_list)

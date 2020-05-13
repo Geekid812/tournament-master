@@ -5,15 +5,16 @@ import json
 from datetime import datetime
 from time import strftime
 import discord
-import requests
 from classes.channel import Channel
+from asyncio import get_event_loop
+import aiohttp
 
 
 def ReadJSON(file):
     """
     Reads a JSON file in the data directory.
     """
-    with open("data/"+file, 'r') as f:
+    with open("data/" + file, 'r') as f:
         o = json.load(f)
         return o
 
@@ -22,7 +23,7 @@ def Overwrite(data, file):
     """
     Overwrites the JSON file with the data provided.
     """
-    with open("data/"+file, 'w') as f:
+    with open("data/" + file, 'w') as f:
         json.dump(data, f)
         return
 
@@ -31,14 +32,14 @@ def Save(data, file):
     """
     Safely overwrites saves and logs warnings in case of a fail.
     """
-    path = "data/"+file
+    path = "data/" + file
     stime = strftime("%H'%M'%S (%d.%m.%y)")
     with open(path, 'r') as f:
         o = json.load(f)
     if len(data) >= len(o):
         with open(path, 'w') as f:
             json.dump(data, f)
-        print("Data saved at "+stime)
+        print("Data saved at " + stime)
         return
     fname = path[:-5]
     with open(fname + f" - backup ({stime}).json", "w") as w:
@@ -79,7 +80,9 @@ def Log(title, description=None, color=0xaaaaaa, fields=None):
     headers = {"Content-Type": "application/json"}
     url = ReadJSON("config.json")["webhook_url"]
     url += ReadJSON("tokens.json")["webhook_token"]
-    requests.post(data=json.dumps(body), headers=headers, url=url)
+
+    get_event_loop().create_task(aiohttp.ClientSession().post(url=url, data=json.dumps(body), headers=headers))
+    # requests.post(data=json.dumps(body), headers=headers, url=url)
 
 
 def UpdatedPresence(client):
@@ -145,6 +148,7 @@ def ModifierCheck(mod, iterable):
                       if isinstance(d, dict) and d['name'] == mod), False)
     return index
 
+
 async def SendFirstTournamentMessage(ctx):
     user = ctx.author
     embed = discord.Embed(title="Welcome to your first tournament!",
@@ -158,20 +162,21 @@ async def SendFirstTournamentMessage(ctx):
                            f" {Channel(ctx.bot).t_chat.mention} (`{Channel(ctx.bot).t_chat.name}`)"
                            ", where you can discuss with other players while waiting for the game"
                            " to fill up!"),
-                           inline=False)
-    
+                    inline=False)
+
     embed.add_field(name="Once the host is ready, you will be able to join the game.",
                     value=("In the channel, you will be given the name and password of a custom"
-                    " game to join in the Werewolf Online app! Open the Main Menu of the game,"
-                    " then go to Play > Custom Games. Find the game in the list and click it, then"
-                    " type the password you were given."),
+                           " game to join in the Werewolf Online app! Open the Main Menu of the game,"
+                           " then go to Play > Custom Games. Find the game in the list and click it, then"
+                           " type the password you were given."),
                     inline=False)
-    
+
     embed.add_field(name="Once everyone has joined, the battle will begin!",
                     value="Good luck and happy hunting!",
                     inline=False)
-    
+
     await user.send(embed=embed)
+
 
 def UpdatedEmbed(tournament):
     embed = tournament.embed_message()
@@ -192,5 +197,5 @@ def UpdatedEmbed(tournament):
     else:
         embed.colour = discord.Color.dark_orange()
         embed.set_author(name="Tournament Started")
-    
+
     return embed

@@ -11,6 +11,17 @@ class Stats(commands.Cog):
     def __init__(self, client):
         self.client = client
 
+    async def _eval(self, ctx, cmd):
+        try:
+            try:
+                result = eval(cmd)
+            except SyntaxError:
+                result = exec(cmd)
+
+            return result
+        except Exception as e:
+            raise commands.BadArgument("Eval raised an exception: `" + str(e) + "`")
+
     @commands.command()
     @allowed_channels(["bot_cmds", "t_chat"])
     async def ping(self, ctx):
