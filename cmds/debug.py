@@ -2,6 +2,8 @@
 
 # Importing Libraries
 import discord
+import sys
+import os
 from discord.ext import commands
 
 to_cog = None
@@ -45,3 +47,10 @@ class Debug(commands.Cog):
 
         if result != "":
             await ctx.send(str(result))
+
+    @commands.command()
+    @commands.is_owner()
+    async def stop(self, ctx):
+        await ctx.send("Goodbye world!")
+
+        await self.client.close()
