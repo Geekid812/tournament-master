@@ -2,9 +2,13 @@
 
 # Importing Libraries
 import discord
+
 from discord.ext import commands
-from classes.perms import allowed_channels
+
+from classes.perms import allowed_channels, is_authorized
 from classes.user import User
+from classes.emote import Emote
+from core import Log
 
 
 class Stats(commands.Cog):
@@ -28,10 +32,11 @@ class Stats(commands.Cog):
         msg = await ctx.send(":ping_pong: Calculating latency...")
         latency = round(self.client.latency, 4) * 1000
         raw_response_time = (
-            msg.created_at - ctx.message.created_at).total_seconds()
+                msg.created_at - ctx.message.created_at).total_seconds()
         response_time = round(raw_response_time, 4) * 1000
 
-        await msg.edit(content=f":link: Websocket Latency: `{latency}ms`\n:speech_balloon: Response Time: `{response_time}ms`")
+        await msg.edit(
+            content=f":link: Websocket Latency: `{latency}ms`\n:speech_balloon: Response Time: `{response_time}ms`")
 
     @commands.command(aliases=['statistics', 'status', 'stat', 'profile'])
     @allowed_channels(["bot_cmds"])
@@ -47,12 +52,12 @@ class Stats(commands.Cog):
             win_rate = str(round(raw_win_rate, 2)) + "%"
         else:
             win_rate = None
-        
+
         if user.ign is not None:
             ign_text = user.ign
         else:
             ign_text = "`None`"
-        
+
         xp_required = user.level * 100
         xp_percentage = int(user.xp / xp_required * 100)
         full_progress = f"{user.progress_bar} `{xp_percentage}%`"
@@ -76,3 +81,39 @@ class Stats(commands.Cog):
         embed.add_field(name="Experience", value=xp_info + full_progress, inline=False)
 
         await ctx.send(embed=embed)
+
+    @commands.command(aliases=['ing'])
+    @allowed_channels(["bot_cmds", "t_chat"], level=1, to=True, mech=True)
+    async def ign(self, ctx, ign=None):
+
+        if ign is None:
+            await ctx.send("Please provide your Werewolf Online in-game name: `;ign example_name`")
+            return
+
+        user = await User.fetch_by_id(ctx, ctx.author.id)
+        old_ign = user.ign
+
+        user.ign = ign
+
+        await ctx.send(f"{Emote.check} {ctx.author.mention}, your Werewolf Online IGN has been set to `{ign}`.")
+
+        Log("IGN Set",
+            description=f"{ctx.author.mention} has set their IGN to `{ign}`.",
+            color=0x6a0dad,
+            fields=[{'name': 'Previous IGN', 'value': old_ign}])
+
+    @commands.command(aliases=['seting'])
+    @is_authorized(level=1, to=True, mech=True)
+    async def setign(self, ctx, member: discord.Member, ign):
+
+        user = await User.fetch_by_id(ctx, member.id)
+        old_ign = user.ign
+
+        user.ign = ign
+
+        await ctx.send(f"{Emote.check} {ctx.author.mention}, **{member.name}**'s IGN has been set to `{ign}`.")
+
+        Log("IGN Set (Staff)",
+            description=f"{ctx.author.mention} has set {member.mention}'s IGN to `{ign}`.",
+            color=0x4a0dff,
+            fields=[{'name': 'Previous IGN', 'value': old_ign}])

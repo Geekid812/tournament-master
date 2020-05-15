@@ -11,6 +11,7 @@ import traceback
 from core import ReadJSON, UpdatedPresence, Log
 from classes.emote import Emote
 from classes.channel import Channel
+from classes.perms import MissingPermissions, InvalidChannel
 from cmds.t_organizer import TOrganizer, TournamentJoinException
 from cmds.stats import Stats
 from cmds.debug import Debug
@@ -127,6 +128,17 @@ async def on_command_error(ctx: commands.Context, error):
         return
 
     if isinstance(error, commands.errors.CommandNotFound): return
+
+    if isinstance(error, MissingPermissions):
+
+        if ctx.command.qualified_name == "setign":
+            await ctx.send("I think the command you are looking for is `;ign`. Try it!")
+
+        return
+
+    if isinstance(error, InvalidChannel):
+
+        await ctx.send(f"You cannot use this command here. Move to {Channel(client).bot_cmds.mention} and try again!")
 
     # None of previously mentioned errors
     embed = discord.Embed(title="An error occured!",

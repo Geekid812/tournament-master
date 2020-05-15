@@ -52,6 +52,6 @@ class Debug(commands.Cog):
             raise commands.BadArgument("Cog not found.")
 
         self.client.remove_cog(cog_name)
-        self.client.add_cog(cog)
+        self.client.add_cog(cog.__class__(self.client))
 
         await ctx.send(f"Reloaded cog {cog_name}.")
