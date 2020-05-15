@@ -39,7 +39,7 @@ async def on_ready():
         starting = False
         to_cog = TOrganizer(client)
         stats_cog = Stats(client)
-        debug_cog = Debug(client, to_cog=to_cog, stats_cog=stats_cog)
+        debug_cog = Debug(client)
 
         client.add_check(commands.guild_only())
         client.add_cog(to_cog)

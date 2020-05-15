@@ -81,8 +81,13 @@ def Log(title, description=None, color=0xaaaaaa, fields=None):
     url = ReadJSON("config.json")["webhook_url"]
     url += ReadJSON("tokens.json")["webhook_token"]
 
-    get_event_loop().create_task(aiohttp.ClientSession().post(url=url, data=json.dumps(body), headers=headers))
+    get_event_loop().create_task(post_log(url, json.dumps(body), headers))
     # requests.post(data=json.dumps(body), headers=headers, url=url)
+
+
+async def post_log(url, data, headers):
+    async with aiohttp.ClientSession() as session:
+        await session.post(url=url, data=data, headers=headers)
 
 
 def UpdatedPresence(client):

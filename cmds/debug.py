@@ -6,18 +6,10 @@ import sys
 import os
 from discord.ext import commands
 
-to_cog = None
-stats_cog = None
-
 
 class Debug(commands.Cog):
-    def __init__(self, client, **kwargs):
+    def __init__(self, client: commands.Bot):
         self.client = client
-
-        global to_cog
-        global stats_cog
-        to_cog = kwargs.get("to_cog")
-        stats_cog = kwargs.get("stats_cog")
 
     async def _eval(self, ctx, cmd):
         try:
@@ -32,16 +24,12 @@ class Debug(commands.Cog):
 
     @commands.command()
     @commands.is_owner()
-    async def eval(self, ctx, cog, *, cmd):
-        cog_aliases = {"t_organizer": to_cog,
-                       "to": to_cog,
-                       "stats": stats_cog,
-                       "debug": self}
+    async def eval(self, ctx, cog_name, *, cmd):
 
-        try:
-            cog = cog_aliases[cog]
-        except KeyError:
-            raise commands.BadArgument(f"Cog `{cog}` not found.")
+        cog = self.client.get_cog(cog_name)
+
+        if cog is None:
+            raise commands.BadArgument(f"Cog `{cog_name}` not found.")
 
         result = await cog._eval(ctx, cmd)
 
@@ -54,3 +42,16 @@ class Debug(commands.Cog):
         await ctx.send("Goodbye world!")
 
         await self.client.close()
+
+    @commands.command()
+    @commands.is_owner()
+    async def reload(self, ctx, cog_name):
+        cog = self.client.get_cog(cog_name)
+
+        if not isinstance(cog, commands.Cog):
+            raise commands.BadArgument("Cog not found.")
+
+        self.client.remove_cog(cog_name)
+        self.client.add_cog(cog)
+
+        await ctx.send(f"Reloaded cog {cog_name}.")
