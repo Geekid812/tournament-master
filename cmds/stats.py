@@ -12,7 +12,7 @@ from core import Log
 
 
 class Stats(commands.Cog):
-    def __init__(self, client):
+    def __init__(self, client: commands.Bot):
         self.client = client
 
     async def _eval(self, ctx, cmd):
@@ -94,6 +94,7 @@ class Stats(commands.Cog):
         old_ign = user.ign
 
         user.ign = ign
+        self.client.get_cog("TOrganizer").cache_ign(ctx.author, ign)
 
         await ctx.send(f"{Emote.check} {ctx.author.mention}, your Werewolf Online IGN has been set to `{ign}`.")
 
@@ -110,6 +111,7 @@ class Stats(commands.Cog):
         old_ign = user.ign
 
         user.ign = ign
+        self.client.get_cog("TOrganizer").cache_ign(ctx.author, ign)
 
         await ctx.send(f"{Emote.check} {ctx.author.mention}, **{member.name}**'s IGN has been set to `{ign}`.")
 

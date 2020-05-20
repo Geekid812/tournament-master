@@ -17,7 +17,7 @@ from classes.perms import is_authorized, allowed_channels, authorized
 from classes.role import Role
 from classes.tournament import Tournament, Status
 from classes.user import User
-from core import Log, TimeUntil, ModifierCheck, UpdatedEmbed
+from core import Log, TimeUntil, ModifierCheck, UpdatedEmbed, SendFirstTournamentMessage
 
 
 class TournamentJoinException(commands.CommandError):
@@ -55,7 +55,7 @@ class Checklist:  # A class used for the IGN checklist
                       color=Color.dark_green())
 
         checklist.embed = embed
-        checklist.msg = await ctx.send(embed=embed)
+        checklist.msg = await Channel(ctx.bot).t_chat.send(embed=embed)
         checklist.client = ctx.bot
         checklist.emote_str = "123456789🇦🇧🇨🇩🇪🇫🇬🇭🇮🇯🇰🇱🇲🇳🇴🇵🇶🇷🇸🇹🇺🇻🇼🇽🇾🇿"
         await checklist.msg.pin()
@@ -91,7 +91,7 @@ class Checklist:  # A class used for the IGN checklist
         except UnboundLocalError:
             return
 
-        reactions = (await ctx.channel.fetch_message(self.msg.id)).reactions
+        reactions = (await Channel(self.client).t_chat.fetch_message(self.msg.id)).reactions
         for reaction in reactions:
             if not isinstance(reaction.emoji, str):
                 continue
@@ -107,6 +107,7 @@ class Checklist:  # A class used for the IGN checklist
                         self.client).temp_host in user.roles:
                     i -= l_index
                     ign_list[i] = "~~" + ign_list[i] + "~~"
+                    break
 
         text = ""
         for ign_item in ign_list:
@@ -147,6 +148,11 @@ class TOrganizer(commands.Cog):
             return result
         except Exception as e:
             raise commands.BadArgument("Eval raised an exception: `" + str(e) + "`")
+
+    def cache_ign(self, user, ign):
+        if self.tournament.status not in (2, 3, 4): return
+
+        ign_cache[user.id] = ign
 
     @commands.command(aliases=['set'])
     @is_authorized(to=True)
@@ -440,7 +446,7 @@ class TOrganizer(commands.Cog):
 
         if user.participations == 0:
             join_msg += "\nThis is the first tournament they are participating in. Welcome! 🎉"
-            # await SendFirstTournamentMessage(ctx) TODO enable this after testing
+            await SendFirstTournamentMessage(ctx) # TODO enable this after testing
         if user.ign is None:
             join_msg += "\nThis player does not have an IGN set yet."
         else:
@@ -768,14 +774,14 @@ class TOrganizer(commands.Cog):
                 embed.description += f"\nYou're now on a **{user.streak}** win streak!"
 
                 if user.streak > user.max_streak:
-                    embed.description += "\nYou have beaten your best win streak! Congratulations!"
+                    embed.description += "\nYou have beaten your max win streak! Congratulations!"
                     user.max_streak = user.streak
 
                 elif user.streak == user.max_streak:
-                    embed.description += "\nYou are tied with your best win streak!"
+                    embed.description += "\nYou are tied with your max win streak!"
 
                 else:
-                    embed.description += f"\nYou're on your way to beat your best win streak of **{user.max_streak}**!"
+                    embed.description += f"\nYou're on your way to beat your max win streak of **{user.max_streak}**!"
 
             else:
                 embed.color = Color.red()
@@ -795,10 +801,3 @@ class TOrganizer(commands.Cog):
             embed.set_author(name="Results")
 
             await player.send(embed=embed)
-
-    @commands.command()
-    @commands.is_owner()
-    async def fetch(self, ctx, fetch_list):
-        fetch_list = [int(item) for item in fetch_list.split(",")]
-        res = await User.fetch_by_ids(ctx, fetch_list)
-        await ctx.send(str([user.id for user in res]))
