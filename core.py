@@ -156,6 +156,7 @@ def ModifierCheck(mod, iterable):
 
 async def SendFirstTournamentMessage(ctx):
     user = ctx.author
+    channels = Channel(ctx.bot)
     embed = discord.Embed(title="Welcome to your first tournament!",
                           description=(f"Hey {user.mention}, you have joined a tournament for the"
                                        " first time! If you are confused, don't worry! I'm here"
@@ -164,7 +165,7 @@ async def SendFirstTournamentMessage(ctx):
 
     embed.add_field(name="Before the game starts, you can chat with fellow participants.",
                     value=("When you join a tournament, you get access to "
-                           f" {Channel(ctx.bot).t_chat.mention} (`{Channel(ctx.bot).t_chat.name}`)"
+                           f" {channels.t_chat.mention} (`{channels.t_chat.name}`)"
                            ", where you can discuss with other players while waiting for the game"
                            " to fill up!"),
                     inline=False)
@@ -180,7 +181,10 @@ async def SendFirstTournamentMessage(ctx):
                     value="Good luck and happy hunting!",
                     inline=False)
 
-    await user.send(embed=embed)
+    try:
+        await user.send(embed=embed)
+    except discord.HTTPException as e:
+        return
 
 
 def UpdatedEmbed(tournament):

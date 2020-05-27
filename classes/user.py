@@ -218,7 +218,13 @@ class User:
 
     @xp.setter
     def xp(self, value: int):
-        self._xp = value
+        new_xp = self.xp + value
+
+        while new_xp >= self.level * 100:  # New level reached
+            new_xp -= self.level * 100
+            self.level += 1
+
+        self._xp = new_xp
         cursor.execute("UPDATE stats SET xp=? WHERE ID=?", (value, self.id))
         conn.commit()
 

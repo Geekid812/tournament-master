@@ -753,15 +753,10 @@ class TOrganizer(commands.Cog):
             player = [x for x in self.tournament.participants if x.id == user.id][0]
             summary, xp = self.tournament.calculate_xp_for(player, user.streak)
 
-            new_xp = user.xp + xp
-            level_up = False
-
-            while new_xp >= user.level * 100:  # New level reached
-                level_up = True
-                new_xp -= user.level * 100
-                user.level += 1
-
-            user.xp = new_xp
+            user.participations += 1
+            prev_level = user.level
+            user.xp += xp
+            new_level = user.level
 
             embed = Embed(title=self.tournament.name)
 
@@ -787,17 +782,49 @@ class TOrganizer(commands.Cog):
                 embed.color = Color.red()
                 embed.description = f"\n **You lost!** :frowning:\nYou lost your win streak of {user.streak}."
 
-            xp_required = user.level * 100
-            xp_percentage = int(user.xp / xp_required * 100)
-            full_progress = f"{user.progress_bar} `{xp_percentage}%`"
-            xp_info = f"Level **{user.level}**\n{user.xp}/{xp_required}\n"
-            lvl_up_message = ""
+            level_info = self._format_level_info(user)
 
-            if level_up:
-                lvl_up_message = f"\n\nYou leveled up to level **{user.level}**! :partying_face:"
+            if new_level > prev_level:
+                level_info += f"\n\nYou leveled up to level **{user.level}**! :partying_face:"
 
-            embed.add_field(name="Experience", value=summary + "\n\n" + xp_info + full_progress + lvl_up_message)
+            embed.add_field(name="Experience", value=summary + "\n\n" + level_info)
             embed.set_footer(text="Want to see more statistics? Check out the ;stats command in #bot-commands!")
             embed.set_author(name="Results")
 
-            await player.send(embed=embed)
+            try:
+                await player.send(embed=embed)
+            except HTTPException as e:
+                if e.status == 403: # Forbidden
+                    await ctx.send(f"{player.mention} has direct messages disabled,"
+                                   " so I can't send them their results.")
+
+        host = await User.fetch_by_id(ctx, self.tournament.host.id)
+
+        prev_level = host.level
+        host.xp += 150 # Hosting XP
+        new_level = host.level
+
+        level_info = self._format_level_info(host)
+
+        if new_level > prev_level:
+            level_info += f"\n\nYou leveled up to level **{host.level}**! :partying_face:"
+
+        desc = "You have recieved `150xp` for hosting this tournament!\n\n" + level_info
+        embed = Embed(title="Thank you for hosting " + self.tournament.name + "!",
+                              description=desc,
+                              color=Color.green())
+
+        try:
+            await self.tournament.host.send(embed=embed)
+        except HTTPException as e:
+            if e.status == 403:  # Forbidden
+                await ctx.send(f"{player.mention} has direct messages disabled,"
+                               " so I can't send them their results.")
+
+    @staticmethod
+    def _format_level_info(user):
+        xp_required = user.level * 100
+        xp_percentage = int(user.xp / xp_required * 100)
+        full_progress = f"{user.progress_bar} `{xp_percentage}%`"
+        xp_info = f"Level **{user.level}**\n{user.xp}/{xp_required}\n"
+        return xp_info + full_progress
