@@ -10,6 +10,7 @@ from discord.ext import commands
 class Debug(commands.Cog):
     def __init__(self, client: commands.Bot):
         self.client = client
+        print(self.__class__.__name__ + " cog initialized!")
 
     async def _eval(self, ctx, cmd):
         try:

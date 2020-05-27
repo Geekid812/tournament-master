@@ -2,11 +2,13 @@
 
 import sqlite3
 import math
-from discord.ext.commands import MemberConverter
+from core import ReadJSON
 
 conn = sqlite3.connect("data/database.db")
 
 cursor = conn.cursor()
+
+config = ReadJSON("config.json")
 
 
 class User:
@@ -20,11 +22,10 @@ class User:
         return new_instance
 
     @classmethod
-    async def fetch_by_id(cls, ctx, user_id):
-        user_id = str(user_id)
+    def fetch_by_id(cls, ctx, user_id):
         user = cursor.execute(
             "SELECT * FROM stats WHERE ID=?", (user_id,)).fetchone()
-        member = await MemberConverter().convert(ctx, user_id)
+        member = ctx.bot.get_guild(config['guild_id']).get_member(user_id)
         username = f"{member.name}#{member.discriminator}"
 
         if user is None:  # New User
@@ -42,7 +43,7 @@ class User:
         return user_class
 
     @classmethod
-    async def fetch_by_ids(cls, ctx, user_ids: list):
+    def fetch_by_ids(cls, ctx, user_ids: list):
         ids = tuple(user_ids)
         result = []
 
@@ -54,7 +55,7 @@ class User:
             uid = user[0]
             user_ids.remove(uid)
 
-            member = await MemberConverter().convert(ctx, str(uid))
+            member = ctx.bot.get_guild(config['guild_id']).get_member(int(uid))
             username = f"{member.name}#{member.discriminator}"
 
             new_user = cls._create_instance_from_raw(user)
@@ -65,7 +66,7 @@ class User:
             result.append(new_user)
 
         for user in user_ids:  # New users
-            member = await MemberConverter().convert(ctx, str(user))
+            member = ctx.bot.get_guild(config['guild_id']).get_member(user)
             username = f"{member.name}#{member.discriminator}"
 
             cursor.execute(

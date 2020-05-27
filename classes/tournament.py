@@ -1,6 +1,6 @@
 # Tournament Object
 
-from discord import Embed, Object
+from discord import Embed
 from core import ModifierCheck
 from classes.emote import Emote
 from core import ReadJSON
@@ -12,6 +12,7 @@ conn = sqlite3.connect("data/database.db")
 
 cursor = conn.cursor()
 
+config = ReadJSON("config.json")
 
 class Status:
     Pending = 0
@@ -206,34 +207,48 @@ class Tournament():
 
             cursor.execute(cmd, update)
             conn.commit()
-        
+
     @classmethod
-    def get_tournaments(cls):
-        order = ('name','host_id','prize','timestamp','status','roles','note')
+    def _create_instance_from_raw(cls, client, raw):
+        guild = client.get_guild(config['guild_id'])
+        new_instance = cls()
+        attributes = [description[0] for description in cursor.description]
+
+        for i in range(len(attributes)):
+            name = attributes[i].lower()
+
+            if name == 'host_id':
+                name = 'host'
+                value = guild.get_member(raw[i])
+
+            if name == 'timestamp':
+                name = 'time'
+                value = datetime.fromtimestamp(raw[i])
+
+            setattr(new_instance, name, raw[i])
+
+        return new_instance
+
+    @classmethod
+    def get_tournaments(cls, client):
         now = datetime.now().timestamp()
         tourney_list = []
 
         response = cursor.execute("SELECT * FROM tournaments WHERE timestamp>?", (now,)).fetchall()
 
         for item in response:
-            tourney = cls()
-            info = item[1:7]
 
-            for i in range(len(info)):
-                value = info[i]
-                name = order[i]
-
-                if name == 'host_id':
-                    name = 'host'
-                    value = Object(value)
-
-                if name == 'timestamp':
-                    name = 'time'
-                    value = datetime.fromtimestamp(value)
-
-                setattr(tourney, name, value)
+            tourney = cls._create_instance_from_raw(client, item)
             
             tourney_list.append(tourney)
         
         return tourney_list
-                
+
+    @classmethod
+    def get_tournament_by_id(cls, client, t_id):
+        response = cursor.execute("SELECT * FROM tournaments WHERE ID=?", (t_id,)).fetchone()
+
+        if response is not None:
+            response = cls._create_instance_from_raw(client, response)
+
+        return response

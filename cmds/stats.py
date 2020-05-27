@@ -14,6 +14,7 @@ from core import Log
 class Stats(commands.Cog):
     def __init__(self, client: commands.Bot):
         self.client = client
+        print(self.__class__.__name__ + " cog initialized!")
 
     async def _eval(self, ctx, cmd):
         try:
@@ -44,7 +45,7 @@ class Stats(commands.Cog):
         if target is None:
             target = ctx.author
 
-        user = await User.fetch_by_id(ctx, target.id)
+        user = User.fetch_by_id(ctx, target.id)
         losses = user.participations - user.wins
 
         if user.participations > 0:
@@ -90,7 +91,7 @@ class Stats(commands.Cog):
             await ctx.send("Please provide your Werewolf Online in-game name: `;ign example_name`")
             return
 
-        user = await User.fetch_by_id(ctx, ctx.author.id)
+        user = User.fetch_by_id(ctx, ctx.author.id)
         old_ign = user.ign
 
         user.ign = ign
@@ -107,7 +108,7 @@ class Stats(commands.Cog):
     @is_authorized(level=1, to=True, mech=True)
     async def setign(self, ctx, member: discord.Member, ign):
 
-        user = await User.fetch_by_id(ctx, member.id)
+        user = User.fetch_by_id(ctx, member.id)
         old_ign = user.ign
 
         user.ign = ign

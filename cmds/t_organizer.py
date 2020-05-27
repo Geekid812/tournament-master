@@ -2,7 +2,6 @@
 
 # Importing Libraries
 import asyncio
-import discord
 from inspect import Parameter
 from time import strftime
 
@@ -122,7 +121,7 @@ class TOrganizer(commands.Cog):
     def __init__(self, client):
         self.client = client
         self.tournament = Tournament()
-        self.queue = Tournament.get_tournaments()
+        self.queue = Tournament.get_tournaments(client)
         self.attr = ['name', 'time', 'prize', 'host', 'roles', 'note']
         self.channels = Channel(client)
         self.roles = Role(client)
@@ -137,6 +136,8 @@ class TOrganizer(commands.Cog):
 
         self.tournament.name = "Testing"
         self.tournament.roles = "Empty"
+
+        print(self.__class__.__name__ + " cog initialized!")
 
     async def _eval(self, ctx, cmd):
         try:
@@ -448,7 +449,7 @@ class TOrganizer(commands.Cog):
             i = join_msg[-35:].index("s are") + len(join_msg) - 35
             join_msg = join_msg[:i] + " is" + join_msg[i + 5:]
 
-        user = await User.fetch_by_id(ctx, ctx.author.id)
+        user = User.fetch_by_id(ctx, ctx.author.id)
 
         if user.participations == 0:
             join_msg += "\nThis is the first tournament they are participating in. Welcome! 🎉"
@@ -586,7 +587,7 @@ class TOrganizer(commands.Cog):
 
         no_ign = ""
         for player in self.tournament.participants:
-            user = await User.fetch_by_id(ctx, player.id)
+            user = User.fetch_by_id(ctx, player.id)
             if user.ign is None: no_ign += f"**{player.name}**\n"
 
         if no_ign != "":
@@ -753,7 +754,7 @@ class TOrganizer(commands.Cog):
         await self.cleanup()
 
         id_list = [player.id for player in self.tournament.participants]
-        user_list = await User.fetch_by_ids(ctx, id_list)
+        user_list = User.fetch_by_ids(ctx, id_list)
 
         for user in user_list:
             player = [x for x in self.tournament.participants if x.id == user.id][0]
@@ -804,7 +805,7 @@ class TOrganizer(commands.Cog):
                     await ctx.send(f"{player.mention} has direct messages disabled,"
                                    " so I can't send them their results.")
 
-        host = await User.fetch_by_id(ctx, self.tournament.host.id)
+        host = User.fetch_by_id(ctx, self.tournament.host.id)
 
         prev_level = host.level
         host.xp += 150 # Hosting XP
