@@ -96,6 +96,7 @@ async def on_member_join(member):
 @client.event
 async def on_member_leave(member):
     await client.change_presence(activity=UpdatedPresence(client))
+    await client.get_cog("TOrganizer").on_member_leave(member)
 
 
 @client.event

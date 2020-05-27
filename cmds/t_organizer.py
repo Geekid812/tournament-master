@@ -154,6 +154,12 @@ class TOrganizer(commands.Cog):
 
         ign_cache[user.id] = ign
 
+    async def on_member_leave(self, member):
+        if member in self.tournament.participants:
+            self.tournament.remove_participant(member)
+            await self.channels.t_chat.send(f":exclamation: {member.mention} left the server"
+                                            " and has been removed from the tournament.")
+
     @commands.command(aliases=['set'])
     @is_authorized(to=True)
     async def tset(self, ctx, attribute, *, value):
@@ -820,6 +826,9 @@ class TOrganizer(commands.Cog):
             if e.status == 403:  # Forbidden
                 await ctx.send(f"{player.mention} has direct messages disabled,"
                                " so I can't send them their results.")
+
+        self.tournament.save()
+        self.tournament = Tournament()
 
     @staticmethod
     def _format_level_info(user):
