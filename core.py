@@ -55,17 +55,6 @@ def Save(data, file):
     return
 
 
-def OnlineIn(members):
-    """
-    Returns the amount of members from a member list who are not in Offline status.
-    """
-    c = 0
-    for member in members:
-        if member.status != discord.Status.offline:
-            c += 1
-    return c
-
-
 def Log(title, description=None, color=0xaaaaaa, fields=None):
     """
     Logs an action or error in the appropriate Discord channel.
@@ -96,9 +85,8 @@ def UpdatedPresence(client):
     """
     config = ReadJSON("config.json")
     members = client.get_guild(config['guild_id']).members
-    online = OnlineIn(members)
     activity = discord.Activity(name=str(len(
-        members)) + " members | " + str(online) + " online", type=discord.ActivityType.watching)
+        members)) + " members", type=discord.ActivityType.watching)
     return activity
 
 

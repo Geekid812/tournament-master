@@ -99,12 +99,6 @@ async def on_member_leave(member):
     await client.get_cog("TOrganizer").on_member_leave(member)
 
 
-@client.event
-async def on_member_update(before, after):
-    if before.status != after.status:  # Member updated his status
-        await client.change_presence(activity=UpdatedPresence(client))
-
-
 # Error Handler
 @client.event
 async def on_command_error(ctx: commands.Context, error):
