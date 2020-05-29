@@ -10,8 +10,10 @@ from classes.user import User
 from classes.emote import Emote
 from core import Log
 
+STATS_LIST = ('participations', 'hosted', 'wins', 'losses', 'streak', 'streak_age', 'max_streak', 'xp', 'level')
 
 class Stats(commands.Cog):
+
     def __init__(self, client: commands.Bot):
         self.client = client
         print(self.__class__.__name__ + " cog initialized!")
@@ -120,3 +122,39 @@ class Stats(commands.Cog):
             description=f"{ctx.author.mention} has set {member.mention}'s IGN to `{ign}`.",
             color=0x4a0dff,
             fields=[{'name': 'Previous IGN', 'value': old_ign}])
+
+    @commands.command()
+    @is_authorized(level=1, to=True, mech=True)
+    async def add(self, ctx, stat, user: discord.Member, amount: int):
+        if stat not in STATS_LIST:
+            raise commands.BadArgument(f"The `{stat}` stat doesn't exist! Check your spelling and"
+                                       " make sure everything is lowercase!")
+
+        profile = User.fetch_by_id(ctx, user.id)
+        current = getattr(profile, stat)
+        setattr(profile, stat, current + amount)
+
+        await ctx.send(f"{Emote.check} Added {str(amount)} {stat} to **{user.name}**.")
+
+        Log(title=f"{stat.capitalize()} Added",
+            description=f"{ctx.author.mention} added {str(amount)} {stat} to {user.mention}.",
+            fields=[{"name": "Value", "value": f"{str(current)} -> {str(current + amount)}"}],
+            color=discord.Color.dark_green())
+
+    @commands.command(aliases=["stats-set"])
+    @is_authorized(level=1, to=True, mech=True)
+    async def _set(self, ctx, stat, user: discord.Member, amount: int):
+        if stat not in STATS_LIST:
+            raise commands.BadArgument(f"The `{stat}` stat doesn't exist! Check your spelling and"
+                                       " make sure everything is lowercase!")
+
+        profile = User.fetch_by_id(ctx, user.id)
+        current = getattr(profile, stat)
+        setattr(profile, stat, amount)
+
+        await ctx.send(f"{Emote.check} Set **{user.name}**'s {stat} to {str(amount)}.")
+
+        Log(title=f"{stat.capitalize()} Set",
+            description=f"{ctx.author.mention} set {user.mention}'s {stat} to {str(amount)}.",
+            fields=[{"name": "Value", "value": f"{str(current)} -> {str(amount)}"}],
+            color=discord.Color.orange())
