@@ -117,6 +117,7 @@ class Checklist:  # A class used for the IGN checklist
 
 ign_cache = {}
 
+
 class TOrganizer(commands.Cog):
     def __init__(self, client):
         self.client = client
@@ -195,9 +196,9 @@ class TOrganizer(commands.Cog):
             color=Color.teal(),
             fields=fields)
 
-    @commands.command(aliases=['info'])
+    @commands.command()
     @is_authorized(to=True)
-    async def tinfo(self, ctx):
+    async def t(self, ctx):
         tournament = self.tournament
         embed = Embed(title=tournament.name, color=Color.teal())
 
@@ -245,7 +246,7 @@ class TOrganizer(commands.Cog):
             val = getattr(self.tournament, attr)
             if attr == 'time':
                 time = parser.parse(val, dayfirst=True, ignoretz=True)
-                val = strftime(f"%A %d %b %H:%M *UTC*", time.timetuple())
+                val = strftime(f"%A %d %b %H:%M *GMT*", time.timetuple())
             elif attr == 'host':
                 val = val.mention
             if attr not in ['name', 'roles'] and val is not None:
@@ -453,7 +454,7 @@ class TOrganizer(commands.Cog):
 
         if user.participations == 0:
             join_msg += "\nThis is the first tournament they are participating in. Welcome! 🎉"
-            await SendFirstTournamentMessage(ctx) # TODO enable this after testing
+            await SendFirstTournamentMessage(ctx)  # TODO enable this after testing
         if user.ign is None:
             join_msg += "\nThis player does not have an IGN set yet."
         else:
@@ -637,6 +638,8 @@ class TOrganizer(commands.Cog):
         Log("Tournament Cancelled",
             description=f"{ctx.author.mention} cancelled **{self.tournament.name}**.",
             color=Color.from_rgb(40, 40, 40))
+        self.tournament.status = Status.Cancelled
+        self.tournament.save()
         self.tournament = Tournament()
 
     async def cleanup(self):
@@ -801,14 +804,15 @@ class TOrganizer(commands.Cog):
             try:
                 await player.send(embed=embed)
             except HTTPException as e:
-                if e.status == 403: # Forbidden
+                if e.status == 403:  # Forbidden
                     await ctx.send(f"{player.mention} has direct messages disabled,"
                                    " so I can't send them their results.")
 
         host = User.fetch_by_id(ctx, self.tournament.host.id)
+        host.hosted += 1
 
         prev_level = host.level
-        host.xp += 150 # Hosting XP
+        host.xp += 150  # Hosting XP
         new_level = host.level
 
         level_info = self._format_level_info(host)
@@ -818,8 +822,8 @@ class TOrganizer(commands.Cog):
 
         desc = "You have recieved `150xp` for hosting this tournament!\n\n" + level_info
         embed = Embed(title="Thank you for hosting " + self.tournament.name + "!",
-                              description=desc,
-                              color=Color.green())
+                      description=desc,
+                      color=Color.green())
 
         try:
             await self.tournament.host.send(embed=embed)
@@ -829,6 +833,7 @@ class TOrganizer(commands.Cog):
                                " so I can't send them their results.")
 
         self.tournament.save()
+        self.queue.remove(self.tournament)
         self.tournament = Tournament()
 
     @staticmethod
@@ -838,3 +843,67 @@ class TOrganizer(commands.Cog):
         full_progress = f"{user.progress_bar} `{xp_percentage}%`"
         xp_info = f"Level **{user.level}**\n{user.xp}/{xp_required}\n"
         return xp_info + full_progress
+
+    @commands.command(aliases=["info"])
+    @allowed_channels(["bot_cmds"], to=True)
+    async def tinfo(self, ctx, *, t_id=None):
+        result = await self.search_tournament(t_id)
+
+        embed = Embed(title=result.name,
+                      color=Color.dark_green())
+
+        try:
+            embed.description = f"Hosted by {result.host.mention}"
+        except AttributeError:
+            embed.description = "The host of this tournament left the server!"
+
+        embed.set_footer(text="Tournament ID: " + str(result.id))
+
+        try:
+            time_left = TimeUntil(result.time)
+            countdown = f"\nStarting in **{time_left}**"
+        except ValueError:
+            countdown = ""
+
+        embed.add_field(name="Time", value=strftime(f"%A %d %b %H:%M *GMT*", result.time.timetuple()) + countdown)
+        embed.add_field(name="Prize", value=result.prize)
+        embed.add_field(name="Status", value=Status.KEYS[result.status])
+        embed.add_field(name="Roles", value=result.roles)
+        embed.add_field(name="Note", value=result.note)
+
+        await ctx.send(embed=embed)
+
+    async def search_tournament(self, t_id):
+        if t_id is None:
+            raise commands.BadArgument("Please specify the name or ID of the tournament you want to search for!")
+        try:
+            int_id = int(t_id)
+        except ValueError:
+            int_id = None
+        result = [t for t in self.queue if t.name == t_id or all([int_id is not None, t.id == int_id])]
+        if not result:
+            result = Tournament.get_tournament_by_id(self.client, t_id)
+
+            if result is None:
+                result = Tournament.get_tournament_by_name(self.client, t_id)
+
+                if result is None:
+                    raise commands.BadArgument("Tournament not found! If you searched by name, check your spelling"
+                                               " and capitialization!")
+        else:
+            result = result[0]
+
+        return result
+
+    @commands.command(aliases=["load"])
+    @is_authorized(to=True)
+    async def tload(self, ctx, t_id = None):
+        tournament = self.search_tournament(t_id)
+        self.tournament = tournament
+        await ctx.send(f"{Emote.check} Loaded **{tournament.name}**.")
+
+    @commands.command(aliases=["save"])
+    @is_authorized(to=True)
+    async def tsave(self, ctx):
+        self.tournament.save()
+        await ctx.send(f"{Emote.check} Saved **{self.tournament.name}**.")

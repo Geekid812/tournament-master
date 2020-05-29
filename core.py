@@ -97,10 +97,11 @@ def TimeUntil(dt):
     t = datetime.utcnow()
     tdelta = dt - t
     s = tdelta.total_seconds()
-    if s < 0:
+    if s <= 0:
         raise ValueError
     d, r = divmod(s, 86400)
-    h = r // 3600
+    h, r = divmod(r, 3600)
+    m = r // 60
     if d > 7:
         w, d = divmod(d, 7)
         ft = f"{w} week and {d} day"
@@ -111,13 +112,10 @@ def TimeUntil(dt):
             ft += "s"
     elif d == 7:
         ft = "1 week"
-    elif d > 2:
+    elif d > 1:
         ft = f"{d} days"
     elif d > 0:
         ft = f"{d} day and {h} hour"
-        if d > 1:
-            i = ft.find(" a")
-            ft = ft[:i] + "s" + ft[i:]
         if h > 1:
             ft += "s"
     elif h > 0:
@@ -125,7 +123,8 @@ def TimeUntil(dt):
         if h > 1:
             ft += "s"
     else:
-        ft = "less than 1 hour"
+        ft = f"{m} minutes"
+        if m == 1: ft = ft[:-1]
     ft = ft.replace(".0", "")  # Remove floats
     return ft
 

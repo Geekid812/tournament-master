@@ -17,10 +17,14 @@ config = ReadJSON("config.json")
 class Status:
     Pending = 0
     Scheduled = 1
-    Buyable = 2
+    PurchasableEntry = 2
     Opened = 3
     Closed = 4
     Ended = 5
+    Cancelled = 6
+
+    KEYS = {0: "Pending", 1: "Scheduled", 2: "PurchasableEntry", 3: "Opened", 4: "Closed", 5: "Ended",
+            6: "Cancelled"}
 
 
 class Tournament():
@@ -216,16 +220,17 @@ class Tournament():
 
         for i in range(len(attributes)):
             name = attributes[i].lower()
+            value = raw[i]
 
             if name == 'host_id':
                 name = 'host'
-                value = guild.get_member(raw[i])
+                value = guild.get_member(value)
 
             if name == 'timestamp':
                 name = 'time'
-                value = datetime.fromtimestamp(raw[i])
+                value = datetime.fromtimestamp(value)
 
-            setattr(new_instance, name, raw[i])
+            setattr(new_instance, name, value)
 
         return new_instance
 
@@ -246,7 +251,16 @@ class Tournament():
 
     @classmethod
     def get_tournament_by_id(cls, client, t_id):
-        response = cursor.execute("SELECT * FROM tournaments WHERE ID=?", (t_id,)).fetchone()
+        response = cursor.execute("SELECT * FROM tournaments WHERE ID=?", (str(t_id),)).fetchone()
+
+        if response is not None:
+            response = cls._create_instance_from_raw(client, response)
+
+        return response
+
+    @classmethod
+    def get_tournament_by_name(cls, client, t_name):
+        response = cursor.execute("SELECT * FROM tournaments WHERE name=?", (t_name,)).fetchone()
 
         if response is not None:
             response = cls._create_instance_from_raw(client, response)
