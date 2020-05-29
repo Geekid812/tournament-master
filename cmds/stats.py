@@ -123,7 +123,7 @@ class Stats(commands.Cog):
             color=0x4a0dff,
             fields=[{'name': 'Previous IGN', 'value': old_ign}])
 
-    @commands.command()
+    @commands.command(aliases=["stats-add"])
     @is_authorized(level=1, to=True, mech=True)
     async def add(self, ctx, stat, user: discord.Member, amount: int):
         if stat not in STATS_LIST:
@@ -158,3 +158,21 @@ class Stats(commands.Cog):
             description=f"{ctx.author.mention} set {user.mention}'s {stat} to {str(amount)}.",
             fields=[{"name": "Value", "value": f"{str(current)} -> {str(amount)}"}],
             color=discord.Color.orange())
+
+    @commands.command(aliases=["stats-remove"])
+    @is_authorized(level=1, to=True, mech=True)
+    async def remove(self, ctx, stat, user: discord.Member, amount: int):
+        if stat not in STATS_LIST:
+            raise commands.BadArgument(f"The `{stat}` stat doesn't exist! Check your spelling and"
+                                       " make sure everything is lowercase!")
+
+        profile = User.fetch_by_id(ctx, user.id)
+        current = getattr(profile, stat)
+        setattr(profile, stat, current - amount)
+
+        await ctx.send(f"{Emote.check} Removed {str(amount)} {stat} from **{user.name}**.")
+
+        Log(title=f"{stat.capitalize()} Removed",
+            description=f"{ctx.author.mention} removed {str(amount)} {stat} from {user.mention}.",
+            fields=[{"name": "Value", "value": f"{str(current)} -> {str(current - amount)}"}],
+            color=discord.Color.dark_red())
