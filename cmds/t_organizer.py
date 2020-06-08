@@ -914,7 +914,7 @@ class TOrganizer(commands.Cog):
         await ctx.send(f"{Emote.check} Saved **{self.tournament.name}**.")
 
     @commands.command(aliases=["create"])
-    @allowed_channels(["bot_cmds"])
+#    @allowed_channels(["bot_cmds"])
     async def tcreate(self, ctx):
         if self.roles.t_host_blacklist in ctx.author.roles:
             raise commands.BadArgument("You are not allowed to create tournament demands.")
@@ -937,9 +937,10 @@ class TOrganizer(commands.Cog):
             " answers, you can type `edit` at any time! You can also type `pause` here "
             "to speak with the Tournament Organizers if you need help.\n\nAlright, first "
             "things first, I will need to know if you are able to create a custom game in"
-            " the Werewolf Online app! If you have bought the custom games option, please"
-            " type `yes` in this chat! If that's not the case, type `no` instead. One of "
-            "our Tournament Organizers will create a room for you.",
+            " the Werewolf Online app! If you have bought the custom games option and want"
+            " to create the custom room yourself, please type `yes` in this chat! If that's"
+            " not the case, type `no` instead. One of our Tournament Organizers will create"
+            " a room for you.",
             "Alright, I'll let the Tournament Organizers know! Now let's start creating "
             "your demand!\n\nTo begin, type the name your timezone here. (For example CEST"
             ", BST, EST, PDT, etc.) We'll automatically adjust the times you give us to fit"
