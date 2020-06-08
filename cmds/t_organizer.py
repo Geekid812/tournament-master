@@ -6,8 +6,7 @@ from inspect import Parameter
 from time import strftime
 
 from dateutil import parser
-from discord import Color, Embed, HTTPException
-from discord import Member
+from discord import Color, Embed, HTTPException, Member, PermissionOverwrite
 from discord.ext import commands
 
 from classes.channel import Channel
@@ -20,6 +19,11 @@ from core import Log, TimeUntil, ModifierCheck, UpdatedEmbed, SendFirstTournamen
 
 
 class TournamentJoinException(commands.CommandError):
+    def __init__(self, msg):
+        super().__init__(message=msg)
+
+
+class BreakException(commands.CommandError):
     def __init__(self, msg):
         super().__init__(message=msg)
 
@@ -133,7 +137,8 @@ class TOrganizer(commands.Cog):
                           {'name': 'PrizeType',
                            'value': ModifierUtils.convert_to_prize_type},
                           {'name': 'AutoGiveCoins', 'value': int},
-                          {'name': 'AssistingTO', 'value': commands.MemberConverter()}]
+                          {'name': 'AssistingTO', 'value': commands.MemberConverter()},
+                          {'name': 'tzOverwrite', 'value': str}]
 
         self.tournament.name = "Testing"
         self.tournament.roles = "Empty"
@@ -897,7 +902,7 @@ class TOrganizer(commands.Cog):
 
     @commands.command(aliases=["load"])
     @is_authorized(to=True)
-    async def tload(self, ctx, t_id = None):
+    async def tload(self, ctx, t_id=None):
         tournament = self.search_tournament(t_id)
         self.tournament = tournament
         await ctx.send(f"{Emote.check} Loaded **{tournament.name}**.")
@@ -907,3 +912,130 @@ class TOrganizer(commands.Cog):
     async def tsave(self, ctx):
         self.tournament.save()
         await ctx.send(f"{Emote.check} Saved **{self.tournament.name}**.")
+
+    @commands.command(aliases=["create"])
+    @allowed_channels(["bot_cmds"])
+    async def tcreate(self, ctx):
+        if self.roles.t_host_blacklist in ctx.author.roles:
+            raise commands.BadArgument("You are not allowed to create tournament demands.")
+
+        await ctx.message.add_reaction(Emote.check)
+        category = [c for c in ctx.guild.categories if c.id == 716603010733572106][0]
+        channel = await category.create_text_channel(ctx.author.name.lower())
+
+        demand = Tournament()
+        saves = {"Custom Games Option": None, "Timezone": None, "Name": "name",
+                 }
+        answers = []
+
+        messages = (
+            f"Hey {ctx.author.mention}! I'm here to help you create your own tournament!"
+            " I'll ask you a few questions about your request which will be sent to the "
+            "Tournament Organizers so that you can host your game! If this is your first"
+            " time, don't worry! If you ever need help creating this demand you can ping"
+            " one of the Tournament Organizers here. \n\nIf you need to edit one of your"
+            " answers, you can type `edit` at any time! You can also type `pause` here "
+            "to speak with the Tournament Organizers if you need help.\n\nAlright, first "
+            "things first, I will need to know if you are able to create a custom game in"
+            " the Werewolf Online app! If you have bought the custom games option, please"
+            " type `yes` in this chat! If that's not the case, type `no` instead. One of "
+            "our Tournament Organizers will create a room for you.",
+            "Alright, I'll let the Tournament Organizers know! Now let's start creating "
+            "your demand!\n\nTo begin, type the name your timezone here. (For example CEST"
+            ", BST, EST, PDT, etc.) We'll automatically adjust the times you give us to fit"
+            " other timezones. If you don't know the name of your timezone, try searching "
+            "online `timezone (your country name)`!\n\n",
+            "Got it! Now for the interesting part. You need to **choose a name** for your "
+            "tournament and type it in this chat. Be creative! Just make sure it follows "
+            "the <#625276183314956288>.",
+            "Okay! Let's continue. I'll let you choose a date and time for your tournament."
+            " We'll try our best to be available at your time"
+        )
+
+        enter = PermissionOverwrite(read_messages=True)
+        lock = PermissionOverwrite(read_messages=False)
+
+        await channel.edit(overwrites={ctx.author: enter, self.roles.everyone: lock, self.roles.t_organizer: enter})
+
+        async def wait_for_response():
+            def check(m):
+                return m.channel == channel and m.author == ctx.author
+
+            try:
+                msg = await self.client.wait_for('message', check=check, timeout=3600)  # 60 Minutes
+                return msg.content
+            except asyncio.TimeoutError:
+                await channel.edit(overwrites={ctx.author: lock})
+                await channel.send("It has been 1 hour with no response. The demand has been interrupted.")
+                raise BreakException
+
+        async def process_command(content, q_num, recursion):
+            if content.lower() == "pause":
+                await channel.send("Demand paused. Type `resume` to continue.")
+                res = await wait_for_response()
+
+                while not res.lower() == "resume":
+                    res = await wait_for_response()
+
+                await channel.send("Resuming! Type your answer to my previous question to continue.")
+                return True
+
+            if content.lower() == "edit":
+                if recursion:
+                    await channel.send("You're already editing your answer!")
+                    return True
+                if q_num == 0:
+                    await channel.send("You're on the first question!")
+                    return True
+
+                param_list = ""
+                keys = list(saves.keys())
+                for i, param in enumerate(keys):
+                    if i < q_num:
+                        param_list += f"`{str(i + 1)}` {param}\n"
+
+                await channel.send("Type the number of the answer you want to edit. \n\n"+ param_list)
+                res = await wait_for_response()
+
+                while not isinstance(res, int):
+                    try:
+                        number = int(res) - 1
+                        if number < q_number:
+                            res = number
+                        else:
+                            raise ValueError
+                    except ValueError:
+                        res = await wait_for_response()
+
+                await channel.send(f"Your previous answer was `{answers[res]}`. What do you want to change it to?")
+                new_value = await wait_for_response()
+
+                while not await validate_input(new_value, res, recursion=True):
+                    new_value = await wait_for_response()
+
+                if list(saves.values())[res]: setattr(demand, list(saves.values())[res], new_value)
+                answers[res] = new_value
+
+                await channel.send(messages[q_num])
+                return True
+
+            return False
+
+        async def validate_input(res, q_num, recursion=False):
+            if await process_command(res, q_num, recursion):
+                return False
+
+            if q_num == 0:
+                return True if res.lower() in ('yes', 'no') else False
+
+            if q_num == 1: return True
+
+        for q_number in range(len(messages)):
+            await channel.send(messages[q_number])
+            response = await wait_for_response()
+
+            while not await validate_input(response, q_number):
+                response = await wait_for_response()
+
+            if list(saves.values())[q_number]: setattr(demand, list(saves.values())[q_number], response)
+            answers.append(response)
