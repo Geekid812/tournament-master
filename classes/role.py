@@ -19,6 +19,7 @@ class Role:
             self.temp_host = discord.utils.get(guild.roles, id=554385586954305558)
             self.t_banned = discord.utils.get(guild.roles, id=553894764504678400)
             self.t_host_blacklist = discord.utils.get(guild.roles, id=559395242063953932)
+            self.everyone = discord.utils.get(guild.roles, id=553641070190133250)
 
             all_roles = [getattr(self, r) for r in dir(self) if not r.startswith("_")]
 
