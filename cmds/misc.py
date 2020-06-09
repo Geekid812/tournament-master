@@ -31,7 +31,7 @@ class Misc(commands.Cog):
         if opponent == ctx.author:
             raise commands.BadArgument("Sadly, you cannot challenge yourself.")
 
-        if opponent == self.client:
+        if opponent == self.client.user:
             raise commands.BadArgument("Hey, I don't want to fight!")
 
         await ctx.send(f"**{ctx.author.name}** challenged **{opponent.name}** to a GNK duel! They"
@@ -43,7 +43,7 @@ class Misc(commands.Cog):
                         msg.content.lower() in ('accept', 'yes', 'acc', 'y')])
 
         try:
-            await asyncio.wait_for('message', timeout=30, check=check)
+            await self.client.wait_for('message', timeout=30, check=check)
         except asyncio.TimeoutError:
             await ctx.send("The challenge invite expired. Sad moment.")
             return
@@ -57,15 +57,17 @@ class Misc(commands.Cog):
                  "mein":{"beats": ["geek", "nou"]}}
 
         def check_p1(msg):
-            return all([msg.author == ctx.author,
-                        msg.channel == ctx.author.id,
-                        msg.content.lower() in moves.keys()])
+            conditions = [msg.author == ctx.author,
+                          msg.channel == ctx.author.dm_channel,
+                          msg.content.lower() in moves.keys()]
+            print(str([c for c in conditions]))
+            return all(conditions)
 
         await ctx.send(f"{ctx.author.mention}, its your turn! Send me your choice in DM!"
                        "\nAvailable moves: `geek` `nou` `king` `ray` `mein`")
 
         try:
-            p1_msg = await asyncio.wait_for('message', timeout=120, check=check_p1)
+            p1_msg = await self.client.wait_for('message', timeout=120, check=check_p1)
             await p1_msg.add_reaction(Emote.check)
             p1_choice = p1_msg.content.lower()
         except asyncio.TimeoutError:
@@ -74,14 +76,14 @@ class Misc(commands.Cog):
 
         def check_p2(msg):
             return all([msg.author == opponent,
-                        msg.channel == opponent.id,
+                        msg.channel == opponent.dm_channel,
                         msg.content.lower() in moves.keys()])
 
         await ctx.send(f"{opponent.mention}, its your turn! Send me your choice in DM!"
                        "\nAvailable moves: `geek` `nou` `king` `ray` `mein`")
 
         try:
-            p2_msg = await asyncio.wait_for('message', timeout=120, check=check_p2)
+            p2_msg = await self.client.wait_for('message', timeout=120, check=check_p2)
             await p2_msg.add_reaction(Emote.check)
             p2_choice = p2_msg.content.lower()
         except asyncio.TimeoutError:
