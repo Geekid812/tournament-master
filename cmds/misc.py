@@ -60,7 +60,6 @@ class Misc(commands.Cog):
             conditions = [msg.author == ctx.author,
                           msg.channel == ctx.author.dm_channel,
                           msg.content.lower() in moves.keys()]
-            print(str([c for c in conditions]))
             return all(conditions)
 
         await ctx.send(f"{ctx.author.mention}, its your turn! Send me your choice in DM!"
@@ -102,4 +101,37 @@ class Misc(commands.Cog):
         ]
 
         await ctx.send(random.choice(results_in_msgs))
-        await asyncio.sleep(5)
+        await asyncio.sleep(6)
+
+        if p2_choice in moves[p1_choice]["beats"]:
+            winner = ctx.author
+            loser = opponent
+            win_pick = p1_choice.capitalize()
+            lose_pick = p2_choice.capitalize()
+        elif p1_choice in moves[p2_choice]["beats"]:
+            winner = opponent
+            loser = ctx.author
+            win_pick = p2_choice.capitalize()
+            lose_pick = p1_choice.capitalize()
+        else:
+            tie_msgs = [
+                "Seems like a bruh moment.",
+                "Not nice.",
+                "This does not spark joy :(",
+                "Booooooring!",
+                "Gotta try again lol"
+            ]
+            await ctx.send(f"Its a tie! You both picked {p1_choice.capitalize()}. " + random.choice(tie_msgs))
+            return
+
+        deaths = [
+            f"{win_pick} stabs {lose_pick} during a tourney! RIP {loser.mention} you didn't pick the right teammate",
+            f"{win_pick} is clearly superior to {lose_pick}, that makes {winner.mention} the winner!",
+            f"{lose_pick} stood no chance against {win_pick}. Congrats {winner.mention}!",
+            f"{win_pick} (who is secretly {winner.mention}) brutally banpanned {lose_pick}! That's a savage move.",
+            f"{win_pick} demoted {lose_pick} for being mean. wack\n\nAlso can we get an F for {loser.mention}",
+            f"{win_pick} stepped on {lose_pick}'s toes because they only had lemonade and no grapes"
+            f"\n\nI knew {loser.mention} would lose this one"
+        ]
+
+        await ctx.send(random.choice(deaths))
