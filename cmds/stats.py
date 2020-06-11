@@ -176,3 +176,10 @@ class Stats(commands.Cog):
             description=f"{ctx.author.mention} removed {str(amount)} {stat} from {user.mention}.",
             fields=[{"name": "Value", "value": f"{str(current)} -> {str(current - amount)}"}],
             color=discord.Color.dark_red())
+
+
+    @commands.command(aliases=["lb","top"])
+    @allowed_channels(["bot_cmds"])
+    async def leaderboard(self, ctx, board=None, start=0):
+
+        if board is None:

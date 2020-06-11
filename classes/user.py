@@ -104,6 +104,42 @@ class User:
         else:
             return value[0]
 
+    @classmethod
+    def fetch_top_by_attr(cls, ctx, attr, start=0):
+
+        value = cursor.execute(
+            f"SELECT * FROM stats ORDER BY {attr}").fetchall()
+
+        result = []
+        amount = 10
+        if len(value) < 10: amount = len(value)
+
+        for item in value[start:amount + start - 1]:
+            uid = item[0]
+            member = ctx.bot.get_guild(config['guild_id']).get_member(int(uid))
+            username = f"{member.name}#{member.discriminator}"
+
+            new_user = cls._create_instance_from_raw(item)
+
+            # Always update username
+            if new_user.username != username: new_user.username = username
+
+            result.append(new_user)
+
+        return result
+
+    @classmethod
+    def fetch_top_pos_by_attr(cls, user_id, attr):
+        value = cursor.execute(
+            f"SELECT * FROM stats ORDER BY {attr}").fetchall()
+
+        ids = [item[0] for item in value]
+
+        if user_id not in ids:
+            return 0
+
+        return ids.index(user_id)
+
     @property
     def id(self):
         return self._ID
