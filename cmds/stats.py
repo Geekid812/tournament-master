@@ -8,9 +8,11 @@ from discord.ext import commands
 from classes.perms import allowed_channels, is_authorized
 from classes.user import User
 from classes.emote import Emote
-from core import Log
+from core import Log, ReadJSON
 
 STATS_LIST = ('participations', 'hosted', 'wins', 'losses', 'streak', 'streak_age', 'max_streak', 'xp', 'level')
+
+config = ReadJSON("config.json")
 
 class Stats(commands.Cog):
 
@@ -177,9 +179,81 @@ class Stats(commands.Cog):
             fields=[{"name": "Value", "value": f"{str(current)} -> {str(current - amount)}"}],
             color=discord.Color.dark_red())
 
-
-    @commands.command(aliases=["lb","top"])
+    @commands.command(aliases=["lb", "top"])
     @allowed_channels(["bot_cmds"])
-    async def leaderboard(self, ctx, board=None, start=0):
+    async def leaderboard(self, ctx, board=None, page=1):
+        boards = {"wins": "wins", "win": "wins", "levels": "level", "xp": "level", "level": "level",
+                  "skill": "skill", "sp": "skill", "bal": "balance", "balance": "balance",
+                  "coins": "balance", "money": "balance"}
+
+        colors = {"wins": 0xffff00, "level": discord.Color.green()}
 
         if board is None:
+            embed = discord.Embed(title="Your Leaderboard Positions", color=ctx.author.color)
+            embed.set_thumbnail(
+                url="https://cdn.discordapp.com/attachments/575627727013412891/721700942336229397/Trophy.png")
+
+            user = User.fetch_by_id(ctx, ctx.author.id)
+            win_pos, win_total = user.fetch_top_pos_by_attr("wins")
+            level_pos, level_total = user.fetch_top_pos_by_attr("level")
+
+            if win_pos:
+                text = f"**Wins:** #{win_pos} out of {win_total} ({user.wins} wins)"
+            else:
+                text = "**Wins:** *Unranked*"
+
+            if level_pos:
+                text += f"\n\n**Levels:** #{level_pos} out of {level_total} (Level {user.level}, {user.xp} xp)"
+            else:
+                text += "\n\n**Levels:** *Unranked*"
+
+            embed.description = text
+            await ctx.send(embed=embed)
+            return
+
+        try:
+            int_page = int(page)
+        except ValueError:
+            raise commands.BadArgument(f"`{page}` is not a valid page number!")
+
+        if int_page <= 0: page = 1
+        attr = boards[board.lower()]
+        start = (page - 1) * 10
+
+        if board.lower() not in boards.keys():
+            raise commands.BadArgument(f"The `{board}` leaderboard doesn't exist!\nTry looking at one of these"
+                                       "leaderboards: `wins` or `levels`")
+
+        top, total = User.fetch_top_by_attr(attr, start=start)
+        max_pages = total // 10 + 1
+        if page > max_pages: page = max_pages
+        embed = discord.Embed(title=f"{attr.capitalize()} Leaderboard (Page {page} of {str(max_pages)})")
+        embed.color = colors[attr]
+
+        text = ""
+        position = (page - 1) * 10 + 1
+        for user in top:
+            member = ctx.bot.get_guild(config['guild_id']).get_member(user.id)
+
+            if member is None:
+                mention = user.username
+            else:
+                mention = member.mention
+
+            text += f"\n[**{position}**] {mention} - "
+
+            if attr == "wins":
+                text += f"**{user.wins}** wins"
+
+            if attr == "level":
+                text += f"Level **{user.level}**, {user.xp} xp"
+
+            position += 1
+
+        user = User.fetch_by_id(ctx, ctx.author.id)
+        pos, total = user.fetch_top_pos_by_attr(attr)
+        text += f"\n\n__Your rank:__\n **#{str(pos)}** out of {str(total)} players"
+
+        embed.description = text
+
+        await ctx.send(embed=embed)

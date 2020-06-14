@@ -23,9 +23,10 @@ class User:
 
     @classmethod
     def fetch_by_id(cls, ctx, user_id):
+        user_id = str(user_id)
         user = cursor.execute(
             "SELECT * FROM stats WHERE ID=?", (user_id,)).fetchone()
-        member = ctx.bot.get_guild(config['guild_id']).get_member(user_id)
+        member = ctx.bot.get_guild(config['guild_id']).get_member(int(user_id))
         username = f"{member.name}#{member.discriminator}"
 
         if user is None:  # New User
@@ -105,40 +106,39 @@ class User:
             return value[0]
 
     @classmethod
-    def fetch_top_by_attr(cls, ctx, attr, start=0):
+    def fetch_top_by_attr(cls, attr, start=0):
+        if attr == "level": attr = "level DESC, xp"
 
         value = cursor.execute(
-            f"SELECT * FROM stats ORDER BY {attr}").fetchall()
+            f"SELECT * FROM stats ORDER BY {attr} DESC").fetchall()
+        total = len(value)
+        if start > total: start = total // 10 * 10
 
         result = []
         amount = 10
-        if len(value) < 10: amount = len(value)
+        if total - start < 10: amount = total
 
-        for item in value[start:amount + start - 1]:
-            uid = item[0]
-            member = ctx.bot.get_guild(config['guild_id']).get_member(int(uid))
-            username = f"{member.name}#{member.discriminator}"
+        for item in value[start:amount + start]:
 
             new_user = cls._create_instance_from_raw(item)
-
-            # Always update username
-            if new_user.username != username: new_user.username = username
-
             result.append(new_user)
 
-        return result
+        return result, total
 
-    @classmethod
-    def fetch_top_pos_by_attr(cls, user_id, attr):
+    def fetch_top_pos_by_attr(self, attr):
+        user_id = self.id
+        if attr == "level": attr = "level DESC, xp"
+
         value = cursor.execute(
-            f"SELECT * FROM stats ORDER BY {attr}").fetchall()
+            f"SELECT * FROM stats ORDER BY {attr} DESC").fetchall()
+        total = len(value)
 
         ids = [item[0] for item in value]
 
         if user_id not in ids:
             return 0
 
-        return ids.index(user_id)
+        return ids.index(user_id) + 1, total
 
     @property
     def id(self):
