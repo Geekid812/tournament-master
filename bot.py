@@ -15,6 +15,7 @@ from classes.perms import MissingPermissions, InvalidChannel
 from cmds.t_organizer import TOrganizer, TournamentJoinException
 from cmds.stats import Stats
 from cmds.debug import Debug
+from cmds.misc import Misc
 
 config = ReadJSON("config.json")
 tokens = ReadJSON("tokens.json")
@@ -41,11 +42,13 @@ async def on_ready():
         to_cog = TOrganizer(client)
         stats_cog = Stats(client)
         debug_cog = Debug(client)
+        misc_cog = Misc(client)
 
         client.add_check(commands.guild_only())
         client.add_cog(to_cog)
         client.add_cog(stats_cog)
         client.add_cog(debug_cog)
+        client.add_cog(misc_cog)
 
 
 # Disconnect Event
