@@ -14,6 +14,7 @@ STATS_LIST = ('participations', 'hosted', 'wins', 'losses', 'streak', 'streak_ag
 
 config = ReadJSON("config.json")
 
+
 class Stats(commands.Cog):
 
     def __init__(self, client: commands.Bot):
@@ -42,6 +43,46 @@ class Stats(commands.Cog):
 
         await msg.edit(
             content=f":link: Websocket Latency: `{latency}ms`\n:speech_balloon: Response Time: `{response_time}ms`")
+
+    @commands.command()
+    @allowed_channels(["bot_cmds"])
+    async def help(self, ctx, sub=None):
+        if sub is None:
+            embed = discord.Embed(title=f"Command Help", color=discord.Color.dark_green())
+            embed.set_thumbnail(url=ctx.guild.icon_url)
+
+            embed.add_field(
+                inline=False,
+                name="Tournaments",
+                value=(
+                    "`;ign <ign>` Set your Werewolf Online in-game name to be able to join tournaments!"
+                    "\n`;join` Join an open tournament."
+                    "\n`;spectate` Spectate an open tournament (If spectating is enabled)."
+                    "\n`;leave` Leave a tournament (You will not recieve any participation rewards)."
+                    "\n~~`;create` Create your own tournaments!~~ *This feature is being reworked!*"
+                )
+            )
+
+            embed.add_field(
+                inline=False,
+                name="Statistics",
+                value=(
+                    "`;ping` Check the bot's latency."
+                    "\n`;stats <member>` Display your/another member's tournament statistics."
+                    "\n`;leaderboard <board>` Check your leaderboard position and view global rankings!"
+                )
+            )
+
+            embed.add_field(
+                inline=False,
+                name="Games",
+                value=(
+                    "`;gnk` (aka Geek, Nou, King) A game similar to rock, paper, scissors but named after the members"
+                    " of this server!"
+                )
+            )
+
+            await ctx.send(embed=embed)
 
     @commands.command(aliases=['statistics', 'status', 'stat', 'profile'])
     @allowed_channels(["bot_cmds"])
@@ -208,6 +249,7 @@ class Stats(commands.Cog):
                 text += "\n\n**Levels:** *Unranked*"
 
             embed.description = text
+            embed.set_footer(text="Type \";leaderboard <board>\" to view a specific leaderboard!")
             await ctx.send(embed=embed)
             return
 

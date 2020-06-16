@@ -138,6 +138,7 @@ async def on_command_error(ctx: commands.Context, error):
     if isinstance(error, InvalidChannel):
 
         await ctx.send(f"You cannot use this command here. Move to {Channel(client).bot_cmds.mention} and try again!")
+        return
 
     # None of previously mentioned errors
     embed = discord.Embed(title="An error occured!",
