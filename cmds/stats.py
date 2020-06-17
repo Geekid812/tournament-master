@@ -223,6 +223,8 @@ class Stats(commands.Cog):
     @commands.command(aliases=["lb", "top"])
     @allowed_channels(["bot_cmds"])
     async def leaderboard(self, ctx, board=None, page=1):
+        await ctx.send(ctx.kwargs)
+        await ctx.send(ctx.args)
         boards = {"wins": "wins", "win": "wins", "levels": "level", "xp": "level", "level": "level",
                   "skill": "skill", "sp": "skill", "bal": "balance", "balance": "balance",
                   "coins": "balance", "money": "balance"}

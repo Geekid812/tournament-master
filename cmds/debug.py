@@ -56,3 +56,16 @@ class Debug(commands.Cog):
         self.client.add_cog(cog.__class__(self.client))
 
         await ctx.send(f"Reloaded cog {cog_name}.")
+
+    @commands.command()
+    @commands.is_owner()
+    async def sudo(self, ctx, member: discord.Member, cmd, *, args=None):
+        ctx.author = member
+        ctx.command = self.client.get_command(cmd)
+        split_args = [ctx.command.cog, ctx]
+        try:
+            ctx.message.content = ctx.prefix + ctx.command.qualified_name + " " + args
+            split_args += args.split(" ")
+        except TypeError:
+            ctx.message.content = ctx.prefix + ctx.command.qualified_name
+        await ctx.command.__call__(tuple(split_args))
