@@ -175,7 +175,10 @@ class Tournament():
                 attrs[attr] = getattr(self, attr)
         
         attrs['host_id'] = attrs['host'].id
-        attrs['timestamp'] = parser.parse(attrs['time'], dayfirst=True, ignoretz=True).timestamp()
+        try:
+            attrs['timestamp'] = parser.parse(attrs['time'], dayfirst=True, ignoretz=True).timestamp()
+        except TypeError:
+            attrs['timestamp'] = None
 
         order = ('name','host_id','prize','timestamp','status','roles','note')
         attrlist = []
@@ -194,8 +197,7 @@ class Tournament():
                 "SELECT ID FROM tournaments ORDER BY ID DESC").fetchone()
             conn.commit()
             self.id = tourney[0]
-            print(self.id)
-        
+
         else:
             cmd = "UPDATE tournaments SET "
             update = []
@@ -228,7 +230,10 @@ class Tournament():
 
             if name == 'timestamp':
                 name = 'time'
-                value = datetime.fromtimestamp(value)
+                try:
+                    value = datetime.fromtimestamp(value)
+                except TypeError:
+                    value = None
 
             setattr(new_instance, name, value)
 

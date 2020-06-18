@@ -6,6 +6,7 @@ from inspect import Parameter
 from time import strftime
 
 from dateutil import parser
+from datetime import datetime
 from discord import Color, Embed, HTTPException
 from discord import Member
 from discord.ext import commands
@@ -789,6 +790,8 @@ class TOrganizer(commands.Cog):
                     embed.description += f"\nYou're on your way to beat your max win streak of **{user.max_streak}**!"
 
             else:
+                user.streak = 0
+                user.streak_age = None
                 embed.color = Color.red()
                 embed.description = f"\n **You lost!** :frowning:\nYou lost your win streak of {user.streak}."
 
@@ -831,9 +834,16 @@ class TOrganizer(commands.Cog):
             if e.status == 403:  # Forbidden
                 await ctx.send(f"{player.mention} has direct messages disabled,"
                                " so I can't send them their results.")
+        except AttributeError:
+            pass  # The bot user was the host so it cannot DM itself
+
+        await self.client.get_command("nto").__call__(ctx)
 
         self.tournament.save()
-        self.queue.remove(self.tournament)
+        try:
+            self.queue.remove(self.tournament)
+        except ValueError:
+            pass
         self.tournament = Tournament()
 
     @staticmethod
@@ -873,7 +883,7 @@ class TOrganizer(commands.Cog):
 
         await ctx.send(embed=embed)
 
-    async def search_tournament(self, t_id):
+    def search_tournament(self, t_id):
         if t_id is None:
             raise commands.BadArgument("Please specify the name or ID of the tournament you want to search for!")
         try:
@@ -907,3 +917,14 @@ class TOrganizer(commands.Cog):
     async def tsave(self, ctx):
         self.tournament.save()
         await ctx.send(f"{Emote.check} Saved **{self.tournament.name}**.")
+
+    @commands.command()
+    @is_authorized(to=True)
+    async def nto(self, ctx):
+        embed = Embed(title="The tournament is not open yet!",
+                      description=f"Type `;upcoming` in {self.channels.bot_cmds.mention} to know"
+                      " when the next tournament will happen!",
+                      timestamp=datetime.utcnow(),
+                      color=Color.red())
+        embed.set_footer(text="Last tournament ended: ")
+        await self.channels.t_channel.send(embed=embed)

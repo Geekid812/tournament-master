@@ -73,7 +73,7 @@ async def on_reaction_add(reaction, user):
         elif str(reaction.emoji) == "📽️":  # Spectate button
             ctx.command = client.get_command("spectate")
         await client.invoke(ctx)
-    elif to_cog.checklist.msg is not None and reaction.message.id == to_cog.checklist.msg.id:
+    elif to_cog.checklist is not None and reaction.message.id == to_cog.checklist.msg.id:
         await UpdateChecklist(reaction)
 
 
