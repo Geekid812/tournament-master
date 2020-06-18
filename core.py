@@ -98,7 +98,7 @@ def TimeUntil(dt):
     tdelta = dt - t
     s = tdelta.total_seconds()
     if s <= 0:
-        raise ValueError
+        s *= -1
     d, r = divmod(s, 86400)
     h, r = divmod(r, 3600)
     m = r // 60

@@ -266,3 +266,15 @@ class Tournament():
             response = cls._create_instance_from_raw(client, response)
 
         return response
+
+    @classmethod
+    def custom_statement(cls, client, statement):
+        response = cursor.execute(statement).fetchall()
+        out = []
+
+        for item in response:
+            if item is not None:
+                instance = cls._create_instance_from_raw(client, item)
+                out.append(instance)
+
+        return out

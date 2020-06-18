@@ -2,13 +2,16 @@
 
 # Importing Libraries
 import discord
+import time
 
 from discord.ext import commands
 
 from classes.perms import allowed_channels, is_authorized
 from classes.user import User
+from classes.tournament import Tournament
+from classes.role import Role
 from classes.emote import Emote
-from core import Log, ReadJSON
+from core import Log, ReadJSON, TimeUntil
 
 STATS_LIST = ('participations', 'hosted', 'wins', 'losses', 'streak', 'streak_age', 'max_streak', 'xp', 'level')
 
@@ -19,6 +22,7 @@ class Stats(commands.Cog):
 
     def __init__(self, client: commands.Bot):
         self.client = client
+        self.roles = Role(self.client)
         print(self.__class__.__name__ + " cog initialized!")
 
     async def _eval(self, ctx, cmd):
@@ -56,6 +60,7 @@ class Stats(commands.Cog):
                 name="Tournaments",
                 value=(
                     "`;ign <ign>` Set your Werewolf Online in-game name to be able to join tournaments!"
+                    "\n`;upcoming` Lists all the tournaments that will start soon!"
                     "\n`;join` Join an open tournament."
                     "\n`;spectate` Spectate an open tournament (If spectating is enabled)."
                     "\n`;leave` Leave a tournament (You will not recieve any participation rewards)."
@@ -298,4 +303,46 @@ class Stats(commands.Cog):
 
         embed.description = text
 
+        await ctx.send(embed=embed)
+
+    @commands.command()
+    @is_authorized(1, to=True, mech=True)
+    async def activity(self, ctx):
+        embed = discord.Embed(title="TO Activity Check", color=discord.Color.green())
+        text = ""
+
+        for user in self.roles.t_organizer.members:
+            if user == self.client.user: return
+
+            latest = Tournament.custom_statement(self.client, f"SELECT * FROM tournaments WHERE host_id={user.id}"
+                                                              " AND status=5 ORDER BY timestamp DESC")
+
+            try:
+                td_str = TimeUntil(latest[0].time) + f" ({latest[0].name})"
+            except IndexError:
+                td_str = "No results found!"
+
+            text += f"{user.mention} - {td_str}\n"
+
+        embed.description = text
+        await ctx.send(embed=embed)
+
+    @commands.command()
+    @allowed_channels(["bot_cmds"])
+    async def upcoming(self, ctx):
+        embed = discord.Embed(title="Upcoming Tournaments", color=discord.Color.green())
+        text = ""
+        now = round(time.time())
+
+        upcoming = Tournament.custom_statement(self.client, f"SELECT * FROM tournaments WHERE timestamp>{now}"
+                                                            " AND status=1 ORDER BY timestamp DESC")
+        text = ""
+
+        if upcoming:
+            for tourney in upcoming:
+                text += f"**{tourney.name}** (Hosted by {tourney.host.mention}) - In {TimeUntil(tourney.time)}\n"
+        else:
+            text = "There are no upcoming tournaments! :("
+
+        embed.description = text
         await ctx.send(embed=embed)
