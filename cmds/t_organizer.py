@@ -182,8 +182,8 @@ class TOrganizer(commands.Cog):
         setattr(self.tournament, attribute, value)
 
         if self.tournament.status >= 3:
-            # Update Tournament Message TODO
-            pass
+            embed = UpdatedEmbed(self.tournament)
+            await self.tournament.msg.edit(embed=embed)
 
         await ctx.send(f"{Emote.check} The `{attribute}` has been set to **{value}**.")
 
@@ -455,7 +455,7 @@ class TOrganizer(commands.Cog):
 
         if user.participations == 0:
             join_msg += "\nThis is the first tournament they are participating in. Welcome! 🎉"
-            await SendFirstTournamentMessage(ctx)  # TODO enable this after testing
+            await SendFirstTournamentMessage(ctx)
         if user.ign is None:
             join_msg += "\nThis player does not have an IGN set yet."
         else:
@@ -630,6 +630,7 @@ class TOrganizer(commands.Cog):
         cancel_msg = await ctx.send(":flag_white: Cancelling...")
 
         await self.cleanup()
+        await self.client.get_command("nto").__call__(ctx)
 
         try:
             await cancel_msg.edit(content=":flag_white: Tournament cancelled.")
@@ -662,7 +663,6 @@ class TOrganizer(commands.Cog):
             await self.tournament.msg.delete()
         except HTTPException:
             pass
-        # TODO No tournaments message
 
     @commands.command(aliases=['winner'])
     @is_authorized(to=True)
