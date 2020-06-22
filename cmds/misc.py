@@ -135,3 +135,8 @@ class Misc(commands.Cog):
         ]
 
         await ctx.send(random.choice(deaths))
+
+    @commands.command()
+    @commands.is_owner()
+    async def say(self, ctx, *, msg):
+        await ctx.send(msg)
