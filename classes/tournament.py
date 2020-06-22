@@ -1,6 +1,6 @@
 # Tournament Object
 
-from discord import Embed
+from discord import Embed, Color
 from core import ModifierCheck
 from classes.emote import Emote
 from core import ReadJSON
@@ -109,6 +109,26 @@ class Tournament():
                             inline=False)
 
         return embed
+
+    def log_embed(self):
+        embed = Embed(title=self.name, description=f"Hosted by {self.host.mention}", color=Color.blue(),
+                      timestamp=datetime.utcnow())
+        winners = self.winners
+        losers = [player for player in self.get_participants() if player not in self.winners]
+        total = len(self.get_participants())
+
+        text = ""
+        for winner in winners:
+            text += f":crown: {winner.mention}\n"
+
+        for loser in losers:
+            text += f"{loser.mention}\n"
+
+        embed.add_field(name=str(total) + " participants", value=text)
+        embed.set_footer(text="Tournament ended at: ")
+
+        return embed
+
 
     def add_participant(self,user):
         if False in self.participants:

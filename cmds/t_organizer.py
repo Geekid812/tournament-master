@@ -419,9 +419,11 @@ class TOrganizer(commands.Cog):
         embed = UpdatedEmbed(self.tournament)
 
         try:
-            await self.channels.t_channel.last_message.delete()
+            msg = await self.channels.t_channel.fetch_message(self.channels.t_channel.last_message_id)
+            await msg.delete()
         except AttributeError:
             pass
+
         self.tournament.msg = await self.channels.t_channel.send("Text", embed=embed)
         await self.tournament.msg.add_reaction(Emote.join)
         if ModifierCheck("SpectatorsAllowed", self.tournament.modifiers) is not False:
@@ -757,7 +759,7 @@ class TOrganizer(commands.Cog):
 
         await self.cleanup()
 
-        id_list = [player.id for player in self.tournament.participants]
+        id_list = [player.id for player in self.tournament.get_participants()]
         user_list = User.fetch_by_ids(ctx, id_list)
 
         for user in user_list:
@@ -832,12 +834,13 @@ class TOrganizer(commands.Cog):
             await self.tournament.host.send(embed=embed)
         except HTTPException as e:
             if e.status == 403:  # Forbidden
-                await ctx.send(f"{player.mention} has direct messages disabled,"
+                await ctx.send(f"{self.tournament.host.mention} has direct messages disabled,"
                                " so I can't send them their results.")
         except AttributeError:
             pass  # The bot user was the host so it cannot DM itself
 
         await self.client.get_command("nto").__call__(ctx)
+        await self.channels.t_logs.send(embed=self.tournament.log_embed())
 
         self.tournament.save()
         try:

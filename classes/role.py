@@ -7,6 +7,7 @@ from time import sleep
 
 guildid = core.ReadJSON("config.json")["guild_id"]
 
+
 class Role:
     def __init__(self, client):
         for i in range(5):
