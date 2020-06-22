@@ -136,9 +136,6 @@ class TOrganizer(commands.Cog):
                           {'name': 'AutoGiveCoins', 'value': int},
                           {'name': 'AssistingTO', 'value': commands.MemberConverter()}]
 
-        self.tournament.name = "Testing"
-        self.tournament.roles = "Empty"
-
         print(self.__class__.__name__ + " cog initialized!")
 
     async def _eval(self, ctx, cmd):
@@ -256,7 +253,8 @@ class TOrganizer(commands.Cog):
             text=f"This tournament will take place in {TimeUntil(time)}!")
 
         await ctx.message.add_reaction(Emote.check)
-        await self.channels.t_planned.send("Text", embed=embed)
+        await self.channels.t_planned.send(f"New tournament scheduled! {self.roles.schedule.mention}",
+                                           embed=embed)
 
         # Add stuff and Log
         Log("Tournament Planned",
@@ -424,7 +422,8 @@ class TOrganizer(commands.Cog):
         except AttributeError:
             pass
 
-        self.tournament.msg = await self.channels.t_channel.send("Text", embed=embed)
+        self.tournament.msg = await self.channels.t_channel.send(f"Tournament **{self.tournament.name}** has started!"
+                                                                 f" {self.roles.tournament.mention}", embed=embed)
         await self.tournament.msg.add_reaction(Emote.join)
         if ModifierCheck("SpectatorsAllowed", self.tournament.modifiers) is not False:
             await self.tournament.msg.add_reaction("📽️")
