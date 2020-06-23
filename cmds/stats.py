@@ -61,6 +61,7 @@ class Stats(commands.Cog):
                 value=(
                     "`;ign <ign>` Set your Werewolf Online in-game name to be able to join tournaments!"
                     "\n`;upcoming` Lists all the tournaments that will start soon!"
+                    "\n`;info <name/ID>` Get some information about a specific tournament!"
                     "\n`;join` Join an open tournament."
                     "\n`;spectate` Spectate an open tournament (If spectating is enabled)."
                     "\n`;leave` Leave a tournament (You will not recieve any participation rewards)."

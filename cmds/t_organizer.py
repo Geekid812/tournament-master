@@ -863,7 +863,7 @@ class TOrganizer(commands.Cog):
     @commands.command(aliases=["info"])
     @allowed_channels(["bot_cmds"], to=True)
     async def tinfo(self, ctx, *, t_id=None):
-        result = await self.search_tournament(t_id)
+        result = self.search_tournament(t_id)
 
         embed = Embed(title=result.name,
                       color=Color.dark_green())
