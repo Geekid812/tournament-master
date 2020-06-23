@@ -14,7 +14,7 @@ class InvalidChannel(commands.CheckFailure):
     pass
 
 
-def authorized(ctx, user=None, level=6, to=False, mech=False):
+def authorized(ctx, user=None, level=6, to=False):
     """
     Checks if the specified user has the required permissions.
 
@@ -48,14 +48,14 @@ def authorized(ctx, user=None, level=6, to=False, mech=False):
     raise MissingPermissions
 
 
-def is_authorized(level=5, to=False, mech=False):
+def is_authorized(level=5, to=False):
     def pred(ctx):
-        return authorized(ctx, level=level, to=to, mech=mech)
+        return authorized(ctx, level=level, to=to)
 
     return commands.check(pred)
 
 
-def allowed_channels(channel_list, level=5, to=False, mech=False):
+def allowed_channels(channel_list, level=5, to=False):
     def pred(ctx):
         channels = Channel(ctx.bot)
         list_ = []
@@ -63,7 +63,7 @@ def allowed_channels(channel_list, level=5, to=False, mech=False):
             list_.append(getattr(channels, channel))
 
         try:
-            authorized(ctx, level=level, to=to, mech=mech)
+            authorized(ctx, level=level, to=to)
             return True
         except MissingPermissions:
             if ctx.channel in list_: return True

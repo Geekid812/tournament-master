@@ -160,6 +160,10 @@ class TOrganizer(commands.Cog):
             await self.channels.t_chat.send(f":exclamation: {member.mention} left the server"
                                             " and has been removed from the tournament.")
 
+    @staticmethod
+    async def increment_streak_age():
+        User.custom_statement("UPDATE stats SET streak_age = streak_age + 1 WHERE streak_age IS NOT NULL")
+
     @commands.command(aliases=['set'])
     @is_authorized(to=True)
     async def tset(self, ctx, attribute, *, value):

@@ -134,7 +134,7 @@ class Stats(commands.Cog):
         await ctx.send(embed=embed)
 
     @commands.command(aliases=['ing'])
-    @allowed_channels(["bot_cmds", "t_chat"], level=1, to=True, mech=True)
+    @allowed_channels(["bot_cmds", "t_chat"], level=1, to=True)
     async def ign(self, ctx, ign=None):
 
         if ign is None:
@@ -155,7 +155,7 @@ class Stats(commands.Cog):
             fields=[{'name': 'Previous IGN', 'value': old_ign}])
 
     @commands.command(aliases=['seting'])
-    @is_authorized(level=1, to=True, mech=True)
+    @is_authorized(level=1, to=True)
     async def setign(self, ctx, member: discord.Member, ign):
 
         user = User.fetch_by_id(ctx, member.id)
@@ -172,7 +172,7 @@ class Stats(commands.Cog):
             fields=[{'name': 'Previous IGN', 'value': old_ign}])
 
     @commands.command(aliases=["stats-add"])
-    @is_authorized(level=1, to=True, mech=True)
+    @is_authorized(level=1, to=True)
     async def add(self, ctx, stat, user: discord.Member, amount: int):
         if stat not in STATS_LIST:
             raise commands.BadArgument(f"The `{stat}` stat doesn't exist! Check your spelling and"
@@ -190,7 +190,7 @@ class Stats(commands.Cog):
             color=discord.Color.dark_green())
 
     @commands.command(aliases=["stats-set"])
-    @is_authorized(level=1, to=True, mech=True)
+    @is_authorized(level=1, to=True)
     async def _set(self, ctx, stat, user: discord.Member, amount: int):
         if stat not in STATS_LIST:
             raise commands.BadArgument(f"The `{stat}` stat doesn't exist! Check your spelling and"
@@ -208,7 +208,7 @@ class Stats(commands.Cog):
             color=discord.Color.orange())
 
     @commands.command(aliases=["stats-remove"])
-    @is_authorized(level=1, to=True, mech=True)
+    @is_authorized(level=1, to=True)
     async def remove(self, ctx, stat, user: discord.Member, amount: int):
         if stat not in STATS_LIST:
             raise commands.BadArgument(f"The `{stat}` stat doesn't exist! Check your spelling and"
@@ -306,7 +306,7 @@ class Stats(commands.Cog):
         await ctx.send(embed=embed)
 
     @commands.command()
-    @is_authorized(1, to=True, mech=True)
+    @is_authorized(1, to=True)
     async def activity(self, ctx):
         embed = discord.Embed(title="TO Activity Check", color=discord.Color.green())
         text = ""

@@ -140,6 +140,18 @@ class User:
 
         return ids.index(user_id) + 1, total
 
+    @classmethod
+    def custom_statement(cls, client, statement):
+        response = cursor.execute(statement).fetchall()
+        out = []
+
+        for item in response:
+            if item is not None:
+                instance = cls._create_instance_from_raw(client, item)
+                out.append(instance)
+
+        return out
+
     @property
     def id(self):
         return self._ID

@@ -1,10 +1,13 @@
 # Tournament Master Refactored Code by Geekid812#1871
 
 # Importing libraries
+import asyncio
+
 import discord
 import textwrap
 import os
-from discord.ext import commands
+from discord.ext import commands, tasks
+from datetime import datetime, timedelta
 import traceback
 
 # Importing classes and cogs
@@ -29,7 +32,7 @@ starting = True
 async def on_ready():
     print("{0.name} is ready!\nID: {0.id}\ndiscord.py Version: {1}".format(
         client.user, str(discord.__version__)))
-    # Log("Bot Online", color=discord.Color.green())
+    Log("Bot Online", color=discord.Color.green())
     await client.change_presence(activity=UpdatedPresence(client))
 
     # Cogs and Checks (only on first start)
@@ -105,7 +108,6 @@ async def on_member_leave(member):
 # Error Handler
 @client.event
 async def on_command_error(ctx: commands.Context, error):
-
     if isinstance(error, commands.errors.BadArgument):  # Bad Argument Raised
         e = str(error).replace('"', '`')
         await ctx.send(f"{Emote.deny} {e}")
@@ -136,7 +138,6 @@ async def on_command_error(ctx: commands.Context, error):
         return
 
     if isinstance(error, InvalidChannel):
-
         await ctx.send(f"You cannot use this command here. Move to {Channel(client).bot_cmds.mention} and try again!")
         return
 
@@ -197,6 +198,23 @@ async def send_traceback(ctx, error):
 
     await Channel(client).error_logs.send(embed=tb_embed)
 
+
+# Tasks
+@tasks.loop(hours=24)
+async def new_day():
+    await client.get_cog("TOrganizer").increment_streak_age()
+
+
+@new_day.before_loop
+async def before_new_day():
+    now = datetime.utcnow()
+    new_day_dt = now.replace(hour=0, minute=0, second=0)
+    new_day_dt += timedelta(days=1)
+    await discord.utils.sleep_until(new_day_dt)
+
+
+# Start Tasks
+new_day.start()
 
 # Run Client
 client.run(tokens['token'])
