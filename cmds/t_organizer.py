@@ -6,7 +6,7 @@ from inspect import Parameter
 from time import strftime
 
 from dateutil import parser
-from datetime import datetime
+from datetime import datetime, timedelta
 from discord import Color, Embed, HTTPException
 from discord import Member
 from discord.ext import commands
@@ -160,9 +160,23 @@ class TOrganizer(commands.Cog):
             await self.channels.t_chat.send(f":exclamation: {member.mention} left the server"
                                             " and has been removed from the tournament.")
 
-    @staticmethod
-    async def increment_streak_age():
-        User.custom_statement("UPDATE stats SET streak_age = streak_age + 1 WHERE streak_age IS NOT NULL")
+    def increment_streak_age(self):
+        User.custom_statement(self.client,
+                              "UPDATE stats SET streak_age = streak_age + 1 WHERE streak_age IS NOT NULL")
+
+    async def update_reminders(self):
+        now = datetime.utcnow()
+        tourneys = [tourney for tourney in self.queue if tourney.time - now < timedelta(days=1)]
+
+        for tourney in tourneys:
+            if tourney.reminder is not None:
+                tourney.reminder.cancel()
+
+            if not tourney.subscribed: continue
+
+            coro = tourney.start_reminder(self.channels.bot_cmds)
+            task = asyncio.create_task(coro)
+            tourney.reminder = task
 
     @commands.command(aliases=['set'])
     @is_authorized(to=True)
@@ -934,3 +948,39 @@ class TOrganizer(commands.Cog):
                       color=Color.red())
         embed.set_footer(text="Last tournament ended: ")
         await self.channels.t_channel.send(embed=embed)
+
+    @commands.command()
+    @allowed_channels(["bot_cmds"])
+    async def remindme(self, ctx, *, t_id = None):
+        tourney = self.search_tournament(t_id)
+
+        if tourney.status != Status.Scheduled:
+            raise commands.BadArgument("This tournament is not scheduled, I don't know when it will start!")
+
+        if ctx.author not in tourney.subscribed:
+            # Subscribe
+            if tourney.subscribed:
+                Tournament.custom_statement(self.client,
+                    "UPDATE tournaments SET subscribed_id = subscribed_id || "
+                    f"\",{str(ctx.author.id)}\" WHERE ID={tourney.id}")
+
+            else:
+                Tournament.custom_statement(self.client,
+                    f"UPDATE tournaments SET subscribed_id = \"{str(ctx.author.id)}\" WHERE ID={tourney.id}")
+
+            tourney.subscribed.append(ctx.author)
+            await self.update_reminders()
+            await ctx.send(f"{Emote.check} {ctx.author.mention}, you will be reminded"
+                           f" 10 minutes before **{tourney.name}** starts.")
+            return
+
+        # Unsubscribe
+        Tournament.custom_statement(self.client,
+            "UPDATE tournaments SET subscribed_id="
+            f"replace(subscribed_id,\"{ctx.author.id}\",\"\")"
+            f" WHERE ID={tourney.id}"
+        )
+        tourney.subscribed.remove(ctx.author)
+        await self.update_reminders()
+        await ctx.send(f"{Emote.check} {ctx.author.mention}, you will no longer be reminded"
+                       f" when **{tourney.name}** starts.")

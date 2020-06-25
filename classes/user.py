@@ -150,6 +150,7 @@ class User:
                 instance = cls._create_instance_from_raw(client, item)
                 out.append(instance)
 
+        conn.commit()
         return out
 
     @property

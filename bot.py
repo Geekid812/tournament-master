@@ -202,7 +202,8 @@ async def send_traceback(ctx, error):
 # Tasks
 @tasks.loop(hours=24)
 async def new_day():
-    await client.get_cog("TOrganizer").increment_streak_age()
+    client.get_cog("TOrganizer").increment_streak_age()
+    await client.get_cog("TOrganizer").update_reminders()
 
 
 @new_day.before_loop

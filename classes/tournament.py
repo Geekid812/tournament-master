@@ -1,12 +1,13 @@
 # Tournament Object
 
-from discord import Embed, Color
+from discord import Embed, Color, utils
 from core import ModifierCheck
 from classes.emote import Emote
 from core import ReadJSON
 from dateutil import parser
-from datetime import datetime
+from datetime import datetime, timedelta
 import sqlite3
+from asyncio import CancelledError
 
 conn = sqlite3.connect("data/database.db")
 
@@ -42,6 +43,8 @@ class Tournament():
         self.spectators = []
         self.winners = []
         self.modifiers = []
+        self.reminder = None
+        self.subscribed = []
 
     def todict(self):
         dict_ = {}
@@ -234,6 +237,23 @@ class Tournament():
             cursor.execute(cmd, update)
             conn.commit()
 
+    async def start_reminder(self, destination):
+        try:
+            print("Starting reminder!")
+            ten_mins_before = self.time - timedelta(minutes=10)
+            await utils.sleep_until(ten_mins_before)
+            mentions = ""
+
+            for player in self.subscribed:
+                mentions += player.mention + " "
+
+            embed = Embed(title="Reminder",
+                          description=f"**{self.name}** will start in 10 minutes!",
+                          color=Color.teal())
+
+            await destination.send(mentions, embed=embed)
+        except CancelledError: pass
+
     @classmethod
     def _create_instance_from_raw(cls, client, raw):
         guild = client.get_guild(config['guild_id'])
@@ -248,12 +268,26 @@ class Tournament():
                 name = 'host'
                 value = guild.get_member(value)
 
-            if name == 'timestamp':
+            elif name == 'timestamp':
                 name = 'time'
                 try:
                     value = datetime.fromtimestamp(value)
                 except TypeError:
                     value = None
+
+            elif name == 'subscribed_id':
+                if value is None: continue
+                player_list = []
+                name = 'subscribed'
+
+                for player_id in value.split(","):
+                    if player_id == "": continue
+                    member = guild.get_member(int(player_id))
+                    if member is None: continue
+
+                    player_list.append(member)
+
+                value = player_list
 
             setattr(new_instance, name, value)
 
@@ -302,4 +336,5 @@ class Tournament():
                 instance = cls._create_instance_from_raw(client, item)
                 out.append(instance)
 
+        conn.commit()
         return out
