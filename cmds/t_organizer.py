@@ -626,10 +626,10 @@ class TOrganizer(commands.Cog):
     @commands.command(aliases=['tcancel'])
     @is_authorized(to=True)
     async def cancel(self, ctx):
-        if self.tournament.status not in (3, 4):
+        if self.tournament.status not in (1, 3, 4):
             raise commands.BadArgument("The tournament has not started.")
 
-        await ctx.send("Are you sure you want to cancel this tournament? `yes`/`no`")
+        await ctx.send(f"Are you sure you want to cancel **{self.tournament.name}**? `yes`/`no`")
 
         def check(m):
             return m.author == ctx.message.author and m.channel == ctx.message.channel
@@ -648,8 +648,15 @@ class TOrganizer(commands.Cog):
 
         cancel_msg = await ctx.send(":flag_white: Cancelling...")
 
-        await self.cleanup()
-        await self.client.get_command("nto").__call__(ctx)
+        try:
+            self.queue.remove(self.tournament)
+        except ValueError: pass
+
+        if self.tournament.status in (3, 4):
+            await self.cleanup()
+            await self.client.get_command("nto").__call__(ctx)
+        else:
+            await self.update_reminders()
 
         try:
             await cancel_msg.edit(content=":flag_white: Tournament cancelled.")
