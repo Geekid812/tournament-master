@@ -32,10 +32,10 @@ def authorized(ctx, user=None, level=6, to=False):
     if ctx.message.author.id == 385404247493050369:  # If User is Bot Owner
         perms = 5
     else:
-        for i in range(5):
+        for i in range(4):
             r = discord.utils.get(roles, id=lvl[i])
             if r in user.roles:
-                perms = 5 - i
+                perms = 4 - i
     to_role = discord.utils.get(roles, id=554385062313852968)
     allowed = False
     if to == True and to_role in user.roles:

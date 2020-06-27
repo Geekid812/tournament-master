@@ -82,7 +82,7 @@ async def on_reaction_add(reaction, user):
 
 @client.event
 async def on_reaction_remove(reaction, user):
-    if to_cog.checklist.msg is not None and reaction.message.id == to_cog.checklist.msg.id:
+    if to_cog.checklist is not None and reaction.message.id == to_cog.checklist.msg.id:
         await UpdateChecklist(reaction)
 
 

@@ -896,13 +896,17 @@ class TOrganizer(commands.Cog):
 
         embed.set_footer(text="Tournament ID: " + str(result.id))
 
-        try:
-            time_left = TimeUntil(result.time)
-            countdown = f"\nStarting in **{time_left}**"
-        except ValueError:
-            countdown = ""
+        if result.time is not None:
+            try:
+                time_left = TimeUntil(result.time)
+                countdown = f"\nStarting in **{time_left}**"
+            except ValueError:
+                countdown = ""
 
-        embed.add_field(name="Time", value=strftime(f"%A %d %b %H:%M *GMT*", result.time.timetuple()) + countdown)
+            embed.add_field(name="Time", value=strftime(f"%A %d %b %H:%M *GMT*", result.time.timetuple()) + countdown)
+        else:
+            embed.add_field(name="Time", value="Unknown")
+
         embed.add_field(name="Prize", value=result.prize)
         embed.add_field(name="Status", value=Status.KEYS[result.status])
         embed.add_field(name="Roles", value=result.roles)
@@ -956,7 +960,7 @@ class TOrganizer(commands.Cog):
         embed.set_footer(text="Last tournament ended: ")
         await self.channels.t_channel.send(embed=embed)
 
-    @commands.command()
+    @commands.command(aliases=["reminder"])
     @allowed_channels(["bot_cmds"])
     async def remindme(self, ctx, *, t_id = None):
         tourney = self.search_tournament(t_id)

@@ -85,6 +85,7 @@ class Stats(commands.Cog):
                 value=(
                     "`;gnk` (aka Geek, Nou, King) A game similar to rock, paper, scissors but named after the members"
                     " of this server!"
+                    "\n`;fiar` (aka Four in a Row) Try to align 4 of your emojis!"
                 )
             )
 
