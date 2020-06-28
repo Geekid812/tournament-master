@@ -196,7 +196,7 @@ class TOrganizer(commands.Cog):
         old_value = getattr(self.tournament, attribute)
         setattr(self.tournament, attribute, value)
 
-        if self.tournament.status >= 3:
+        if self.tournament.status in (3, 4):
             embed = UpdatedEmbed(self.tournament)
             await self.tournament.msg.edit(embed=embed)
 
@@ -411,7 +411,7 @@ class TOrganizer(commands.Cog):
             raise commands.BadArgument(
                 "The tournament has already started.")
 
-        req = ['name', 'host', 'roles']
+        req = ('name', 'host')
         missing = []
         for attr in req:
             if getattr(self.tournament, attr) is None:
@@ -420,6 +420,9 @@ class TOrganizer(commands.Cog):
             items = " and ".join(item for item in missing)
             raise commands.BadArgument(
                 f"You have not specified a {items} for the tournament.")
+
+        if self.tournament.time is None:
+            self.tournament.time = datetime.utcnow()
 
         await self.tournament.host.add_roles(self.roles.temp_host)
         host_id = self.tournament.host.id
@@ -573,7 +576,7 @@ class TOrganizer(commands.Cog):
             if user in self.tournament.winners:
                 self.tournament.winners.remove(user)
             self.tournament.remove_participant(user)
-            await ctx.send(f"{Emote.leave} {ctx.author.mention} was kicked from the tournament.")
+            await ctx.send(f"{Emote.leave} {user.mention} was kicked from the tournament.")
             Log("Participant Kicked",
                 description=f"{ctx.author.mention} was kicked from **{self.tournament.name}** by {ctx.author.mention}.",
                 color=Color.dark_gold())
@@ -866,6 +869,7 @@ class TOrganizer(commands.Cog):
         await self.client.get_command("nto").__call__(ctx)
         await self.channels.t_logs.send(embed=self.tournament.log_embed())
 
+        self.tournament.status = Status.Ended
         self.tournament.save()
         try:
             self.queue.remove(self.tournament)
@@ -946,6 +950,16 @@ class TOrganizer(commands.Cog):
     @commands.command(aliases=["save"])
     @is_authorized(to=True)
     async def tsave(self, ctx):
+        req = ('name', 'host', 'time')
+        missing = []
+        for attr in req:
+            if getattr(self.tournament, attr) is None:
+                missing.append("`" + attr + "`")
+        if missing:
+            items = " and ".join(item for item in missing)
+            raise commands.BadArgument(
+                f"You have not specified a {items} for the tournament.")
+
         self.tournament.save()
         await ctx.send(f"{Emote.check} Saved **{self.tournament.name}**.")
 

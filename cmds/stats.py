@@ -266,13 +266,13 @@ class Stats(commands.Cog):
             raise commands.BadArgument(f"`{page}` is not a valid page number!")
 
         if int_page <= 0: page = 1
-        attr = boards[board.lower()]
         start = (page - 1) * 10
 
         if board.lower() not in boards.keys():
             raise commands.BadArgument(f"The `{board}` leaderboard doesn't exist!\nTry looking at one of these"
-                                       "leaderboards: `wins` or `levels`")
+                                       " leaderboards: `wins` or `levels`")
 
+        attr = boards[board.lower()]
         top, total = User.fetch_top_by_attr(attr, start=start)
         max_pages = total // 10 + 1
         if page > max_pages: page = max_pages
