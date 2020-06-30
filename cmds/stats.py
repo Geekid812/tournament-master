@@ -16,6 +16,7 @@ from core import Log, ReadJSON, TimeUntil
 STATS_LIST = ('participations', 'hosted', 'wins', 'losses', 'streak', 'streak_age', 'max_streak', 'xp', 'level')
 
 config = ReadJSON("config.json")
+version = config["version"]
 
 
 class Stats(commands.Cog):
@@ -47,6 +48,11 @@ class Stats(commands.Cog):
 
         await msg.edit(
             content=f":link: Websocket Latency: `{latency}ms`\n:speech_balloon: Response Time: `{response_time}ms`")
+
+    @commands.command()
+    @allowed_channels(["bot_cmds"])
+    async def version(self, ctx):
+        await ctx.send(f":gear: Version: `{version}`")
 
     @commands.command()
     @allowed_channels(["bot_cmds"])
