@@ -281,7 +281,8 @@ class TOrganizer(commands.Cog):
                                           {"name": "Time", "value": self.tournament.time}])
         self.tournament.status = Status.Scheduled
         self.tournament.save()
-        self.queue.append(self.tournament)
+        if self.tournament not in self.queue:
+            self.queue.append(self.tournament)
         self.tournament = Tournament()
 
     @commands.group(aliases=['modifiers', 'modifers', 'modifer'])
@@ -610,7 +611,7 @@ class TOrganizer(commands.Cog):
                 "There are no participants in the tournament.")
 
         no_ign = ""
-        for player in self.tournament.participants:
+        for player in self.tournament.get_participants():
             user = User.fetch_by_id(ctx, player.id)
             if user.ign is None: no_ign += f"**{player.name}**\n"
 
@@ -790,7 +791,7 @@ class TOrganizer(commands.Cog):
         user_list = User.fetch_by_ids(ctx, id_list)
 
         for user in user_list:
-            player = [x for x in self.tournament.participants if x.id == user.id][0]
+            player = [x for x in self.tournament.get_participants() if x.id == user.id][0]
             summary, xp = self.tournament.calculate_xp_for(player, user.streak)
 
             user.participations += 1
@@ -925,24 +926,28 @@ class TOrganizer(commands.Cog):
             int_id = int(t_id)
         except ValueError:
             int_id = None
-        result = [t for t in self.queue if t.name == t_id or all([int_id is not None, t.id == int_id])]
-        if not result:
-            result = Tournament.get_tournament_by_id(self.client, t_id)
+
+        for tournament in self.queue:
+            if isinstance(int_id, int) and tournament.id == int_id:
+                return tournament
+
+            if tournament.name == t_id:
+                return tournament
+
+        result = Tournament.get_tournament_by_id(self.client, t_id)
+
+        if result is None:
+            result = Tournament.get_tournament_by_name(self.client, t_id)
 
             if result is None:
-                result = Tournament.get_tournament_by_name(self.client, t_id)
-
-                if result is None:
-                    raise commands.BadArgument("Tournament not found! If you searched by name, check your spelling"
+                raise commands.BadArgument("Tournament not found! If you searched by name, check your spelling"
                                                " and capitialization!")
-        else:
-            result = result[0]
 
         return result
 
     @commands.command(aliases=["load"])
     @is_authorized(to=True)
-    async def tload(self, ctx, t_id = None):
+    async def tload(self, ctx, *, t_id = None):
         tournament = self.search_tournament(t_id)
         self.tournament = tournament
         await ctx.send(f"{Emote.check} Loaded **{tournament.name}**.")
@@ -961,6 +966,11 @@ class TOrganizer(commands.Cog):
                 f"You have not specified a {items} for the tournament.")
 
         self.tournament.save()
+
+        if self.tournament not in self.queue:
+            self.queue.append(self.tournament)
+
+        self.tournament = Tournament()
         await ctx.send(f"{Emote.check} Saved **{self.tournament.name}**.")
 
     @commands.command()
