@@ -14,7 +14,7 @@ class InvalidChannel(commands.CheckFailure):
     pass
 
 
-def authorized(ctx, user=None, level=6, to=False):
+def authorized(ctx, user=None, level=5, to=False):
     """
     Checks if the specified user has the required permissions.
 
@@ -26,19 +26,24 @@ def authorized(ctx, user=None, level=6, to=False):
     """
     if user is None:
         user = ctx.message.author
-    lvl = [554384345645973514, 554384010650845184, 554383429173641227, 554382994589089801]
+
+    if ctx.message.author.id == 385404247493050369:  # If User is Bot Owner
+        return True
+
     roles = ctx.message.guild.roles
     perms = 0
-    if ctx.message.author.id == 385404247493050369:  # If User is Bot Owner
-        perms = 5
-    else:
+
+    if level != 5:
+        lvl = [554384345645973514, 554384010650845184, 554383429173641227, 554382994589089801]
+
         for i in range(4):
             r = discord.utils.get(roles, id=lvl[i])
             if r in user.roles:
                 perms = 4 - i
+
     to_role = discord.utils.get(roles, id=554385062313852968)
     allowed = False
-    if to == True and to_role in user.roles:
+    if to is True and to_role in user.roles:
         allowed = True
     if perms >= level:
         allowed = True

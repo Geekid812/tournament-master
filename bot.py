@@ -14,7 +14,8 @@ import traceback
 from core import ReadJSON, UpdatedPresence, Log
 from classes.emote import Emote
 from classes.channel import Channel
-from classes.perms import MissingPermissions, InvalidChannel
+from classes.role import Role
+from classes.perms import MissingPermissions, InvalidChannel, authorized
 from cmds.t_organizer import TOrganizer, TournamentJoinException
 from cmds.stats import Stats
 from cmds.debug import Debug
@@ -61,6 +62,14 @@ async def on_disconnect():
     Log("Bot Disconnected", color=discord.Color.red())
 
 
+# Resume Event
+@client.event
+async def on_resume():
+    print(f"{client.user.name} reconnected!")
+    Log("Bot Reconnected", color=discord.Color.green())
+    await client.get_cog("TOrganizer").update_reminders()
+
+
 # Reaction Filter
 @client.event
 async def on_reaction_add(reaction, user):
@@ -76,21 +85,40 @@ async def on_reaction_add(reaction, user):
         elif str(reaction.emoji) == "📽️":  # Spectate button
             ctx.command = client.get_command("spectate")
         await client.invoke(ctx)
+
     elif to_cog.checklist is not None and reaction.message.id == to_cog.checklist.msg.id:
-        await UpdateChecklist(reaction)
+
+        if reaction.emoji[0] in to_cog.checklist.emote_str:
+            ctx = await client.get_context(to_cog.checklist.msg)
+
+            if CheckToggle(ctx, await reaction.users().flatten()):
+                await to_cog.checklist.check_item(ctx, to_cog.tournament, reaction.emoji[0])
 
 
 @client.event
 async def on_reaction_remove(reaction, user):
     if to_cog.checklist is not None and reaction.message.id == to_cog.checklist.msg.id:
-        await UpdateChecklist(reaction)
 
-
-async def UpdateChecklist(reaction):
-    if to_cog.checklist is not None and reaction.message.id == to_cog.checklist.msg.id:
         if reaction.emoji[0] in to_cog.checklist.emote_str:
             ctx = await client.get_context(to_cog.checklist.msg)
-            await to_cog.checklist.update(ctx, to_cog.tournament)
+
+            if not CheckToggle(ctx, await reaction.users().flatten()):
+                await to_cog.checklist.uncheck_item(ctx, to_cog.tournament, reaction.emoji[0])
+
+
+def CheckToggle(ctx, user_list):
+        checked = False
+        for user in user_list:
+            if user == client.user: continue
+
+            try:
+                authorized(ctx, user=user, to=True)
+            except MissingPermissions: continue
+
+            checked = True
+            break
+
+        return checked
 
 
 # Presence Manager

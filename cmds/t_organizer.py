@@ -55,13 +55,24 @@ class Checklist:  # A class used for the IGN checklist
                       color=Color.dark_green())
 
         checklist.embed = embed
+        checklist.checked = {}
         checklist.msg = await Channel(ctx.bot).t_chat.send(embed=embed)
         checklist.client = ctx.bot
         checklist.emote_str = "123456789🇦🇧🇨🇩🇪🇫🇬🇭🇮🇯🇰🇱🇲🇳🇴🇵🇶🇷🇸🇹🇺🇻🇼🇽🇾🇿"
         await checklist.msg.pin()
         return checklist
 
-    async def update(self, ctx, tournament):
+    async def uncheck_item(self, ctx, tournament, emoji):
+        index = self.emote_str.index(emoji)
+        self.checked[index] = False
+        await self.update_text(ctx, tournament)
+
+    async def check_item(self, ctx, tournament, emoji):
+        index = self.emote_str.index(emoji)
+        self.checked[index] = True
+        await self.update_text(ctx, tournament)
+
+    async def update_text(self, ctx, tournament):
         participant_list = tournament.participants
         host = tournament.host
         p_count = len(participant_list)
@@ -84,30 +95,20 @@ class Checklist:  # A class used for the IGN checklist
                 return
             if i < 9:
                 emote += "⃣"
-            ign_list.append(f"{emote} {participant.mention} - `{player_ign}`")
+
+            new_entry = f"{emote} {participant.mention} - `{player_ign}`"
+            try:
+                if self.checked[i] is True:
+                    new_entry = "~~" + new_entry + "~~"
+            except KeyError:
+                self.checked[i] = False
+
+            ign_list.append(new_entry)
 
         try:  # No players tracked soft-fail
             await self.msg.add_reaction(emote)
         except UnboundLocalError:
             return
-
-        reactions = (await Channel(self.client).t_chat.fetch_message(self.msg.id)).reactions
-        for reaction in reactions:
-            if not isinstance(reaction.emoji, str):
-                continue
-            emoji = reaction.emoji[0]
-            if emoji not in self.emote_str:
-                continue
-            i = self.emote_str.index(emoji) + 1
-            if i > p_count:
-                continue
-
-            async for user in reaction.users():
-                if user != self.client.user and authorized(ctx, user=user, to=True) or Role(
-                        self.client).temp_host in user.roles:
-                    i -= l_index
-                    ign_list[i] = "~~" + ign_list[i] + "~~"
-                    break
 
         text = ""
         for ign_item in ign_list:
@@ -455,7 +456,7 @@ class TOrganizer(commands.Cog):
     @commands.command()
     @allowed_channels(["t_channel", "bot_cmds"])
     async def join(self, ctx):
-        await self.CheckRequirements(ctx.author)
+        # await self.CheckRequirements(ctx.author)
 
         player_count = len(self.tournament.get_participants())
         mod_index = ModifierCheck("MaxParticipants", self.tournament.modifiers)
@@ -496,7 +497,7 @@ class TOrganizer(commands.Cog):
 
         embed = UpdatedEmbed(self.tournament)
         await self.tournament.msg.edit(embed=embed)
-        await self.checklist.update(ctx, self.tournament)
+        await self.checklist.update_text(ctx, self.tournament)
 
     @commands.command()
     @allowed_channels(["t_channel", "bot_cmds"])
@@ -554,7 +555,7 @@ class TOrganizer(commands.Cog):
 
             embed = UpdatedEmbed(self.tournament)
             await self.tournament.msg.edit(embed=embed)
-            await self.checklist.update(ctx, self.tournament)
+            await self.checklist.update_text(ctx, self.tournament)
 
         elif ctx.author in self.tournament.spectators:
             await ctx.author.remove_roles(self.roles.spectator)
@@ -584,7 +585,7 @@ class TOrganizer(commands.Cog):
 
             embed = UpdatedEmbed(self.tournament)
             await self.tournament.msg.edit(embed=embed)
-            await self.checklist.update(ctx, self.tournament)
+            await self.checklist.update_text(ctx, self.tournament)
 
         elif user in self.tournament.spectators:
             await user.remove_roles(self.roles.spectator)
