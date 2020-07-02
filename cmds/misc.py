@@ -4,7 +4,13 @@
 import discord
 import asyncio
 import random
+import chess
+import chess.svg
+from svglib.svglib import svg2rlg
 from discord.ext import commands
+from reportlab.graphics import renderPM
+from PIL import Image
+
 from classes.emote import Emote
 from classes.perms import allowed_channels
 
@@ -306,3 +312,144 @@ class Misc(commands.Cog):
             # Change Turn
             turn += 1
             if turn == 3: turn = 1
+
+    @commands.command()
+    async def chess(self, ctx, opponent: discord.Member):
+        if opponent == ctx.author:
+            raise commands.BadArgument("Sadly, you cannot challenge yourself.")
+
+        if opponent == self.client.user:
+            raise commands.BadArgument("I'm not big brain enough to play with you, sorry!")
+
+        await ctx.send(f"**{ctx.author.name}** challenged **{opponent.name}** to a game of chess! They"
+                       " have 30 seconds to type `accept`.")
+
+        def check(msg):
+            return all([msg.author == opponent,
+                        msg.channel == ctx.channel,
+                        msg.content.lower() in ('accept', 'yes', 'acc', 'y')])
+
+        try:
+            await self.client.wait_for('message', timeout=30, check=check)
+        except asyncio.TimeoutError:
+            await ctx.send("The challenge invite expired. Sad moment.")
+            return
+
+        await ctx.send(f":white_large_square: {ctx.author.name}\n:black_large_square: {opponent.name}")
+
+        await self.chess_loop(ctx, p1=ctx.author, p2=opponent)
+
+    async def chess_loop(self, ctx, p1, p2):
+
+        def check_input_1(msg):
+            try:
+                s = msg.content.split(" ")
+                f = s[0].lower()
+                t = s[1].lower()
+                chess.Move.from_uci(f + t)
+            except:
+                return False
+
+            return all([msg.author == p1,
+                        msg.channel == ctx.channel])
+
+        def check_input_2(msg):
+            try:
+                s = msg.content.split(" ")
+                f = s[0].lower()
+                t = s[1].lower()
+                chess.Move.from_uci(f + t)
+            except:
+                return False
+
+            return all([msg.author == p2,
+                        msg.channel == ctx.channel])
+
+        game_over = False
+        board = chess.Board()
+        last_move_info = ""
+        title = p1.name + " is playing!"
+        color = discord.Color.blue()
+
+        while not game_over:
+            playing = p1 if board.turn == chess.WHITE else p2
+            check_func = check_input_1 if board.turn == chess.WHITE else check_input_2
+            turn_count = board.fullmove_number
+            image = await self.create_board_image(board)
+
+            embed = discord.Embed(description=last_move_info, color=color)
+            embed.set_footer(text="Turn " + str(turn_count))
+            embed.set_author(name=title)
+            embed.set_image(url="attachment://board.png")
+            await ctx.send(file=image, embed=embed)
+
+            end_turn = False
+            while not end_turn:
+                try:
+                    msg = await self.client.wait_for('message', timeout=600, check=check_func)
+                    content = msg.content
+                except asyncio.TimeoutError:
+                    await ctx.send("Well then, I see you aren't going to play the game. Might as well cancel...")
+                    return
+
+                split = content.split(" ")
+                from_ = split[0]
+                to_ = split[1]
+                move = chess.Move.from_uci(from_.lower() + to_.lower())
+
+                if move in board.legal_moves:
+                    board.push(move)
+                    last_move_info = f"{playing.name} moved `{from_.upper()}` to `{to_.upper()}`."
+
+                    if board.is_checkmate():
+                        game_over = True
+                        embed = discord.Embed(title="Checkmate!",
+                                              description=f"{playing.name} wins!",
+                                              color=discord.Color.gold())
+                        image = await self.create_board_image(board)
+                        embed.set_image(url="attachment://board.png")
+                        await ctx.send(file=image, embed=embed)
+
+                    elif board.is_check():
+                        title = "Check!"
+                        color = discord.Color.teal()
+
+                    elif board.is_game_over(claim_draw=False):
+                        game_over = True
+                        embed = discord.Embed(title="Game Over!",
+                                              description=f"{playing.name} wins!",
+                                              color=discord.Color.dark_red())
+                        image = await self.create_board_image(board)
+                        embed.set_image(url="attachment://board.png")
+                        await ctx.send(file=image, embed=embed)
+
+                    else:
+                        next_playing = p2 if p1 == playing else p1
+                        title = next_playing.name + " is playing!"
+                        color = discord.Color.blue()
+
+                    end_turn = True
+
+                else:
+                    await ctx.send("This move is not valid! Try again.")
+
+    @staticmethod
+    async def create_board_image(board):
+        try:
+            move = board.peek()
+            arrow = chess.svg.Arrow(move.from_square, move.to_square, color='#37a1ff')
+            arrows = [arrow]
+        except IndexError:
+            arrows = []
+
+        img = chess.svg.board(board=board, arrows=arrows)
+
+        with open('assets/chess_board.svg', "w") as out:
+            out.write(img)
+
+        drawing = svg2rlg("assets/chess_board.svg")
+        renderPM.drawToFile(drawing, "assets/chess_board.png", fmt="PNG")
+        img = Image.open('assets/chess_board.png')
+        img.save('assets/chess_board.png')
+
+        return discord.File(fp="assets/chess_board.png", filename="board.png")
