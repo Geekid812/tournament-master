@@ -55,13 +55,24 @@ class Checklist:  # A class used for the IGN checklist
                       color=Color.dark_green())
 
         checklist.embed = embed
+        checklist.checked = {}
         checklist.msg = await Channel(ctx.bot).t_chat.send(embed=embed)
         checklist.client = ctx.bot
         checklist.emote_str = "123456789🇦🇧🇨🇩🇪🇫🇬🇭🇮🇯🇰🇱🇲🇳🇴🇵🇶🇷🇸🇹🇺🇻🇼🇽🇾🇿"
         await checklist.msg.pin()
         return checklist
 
-    async def update(self, ctx, tournament):
+    async def uncheck_item(self, ctx, tournament, emoji):
+        index = self.emote_str.index(emoji)
+        self.checked[index] = False
+        await self.update_text(ctx, tournament)
+
+    async def check_item(self, ctx, tournament, emoji):
+        index = self.emote_str.index(emoji)
+        self.checked[index] = True
+        await self.update_text(ctx, tournament)
+
+    async def update_text(self, ctx, tournament):
         participant_list = tournament.participants
         host = tournament.host
         p_count = len(participant_list)
@@ -84,30 +95,20 @@ class Checklist:  # A class used for the IGN checklist
                 return
             if i < 9:
                 emote += "⃣"
-            ign_list.append(f"{emote} {participant.mention} - `{player_ign}`")
+
+            new_entry = f"{emote} {participant.mention} - `{player_ign}`"
+            try:
+                if self.checked[i] is True:
+                    new_entry = "~~" + new_entry + "~~"
+            except KeyError:
+                self.checked[i] = False
+
+            ign_list.append(new_entry)
 
         try:  # No players tracked soft-fail
             await self.msg.add_reaction(emote)
         except UnboundLocalError:
             return
-
-        reactions = (await Channel(self.client).t_chat.fetch_message(self.msg.id)).reactions
-        for reaction in reactions:
-            if not isinstance(reaction.emoji, str):
-                continue
-            emoji = reaction.emoji[0]
-            if emoji not in self.emote_str:
-                continue
-            i = self.emote_str.index(emoji) + 1
-            if i > p_count:
-                continue
-
-            async for user in reaction.users():
-                if user != self.client.user and authorized(ctx, user=user, to=True) or Role(
-                        self.client).temp_host in user.roles:
-                    i -= l_index
-                    ign_list[i] = "~~" + ign_list[i] + "~~"
-                    break
 
         text = ""
         for ign_item in ign_list:
@@ -188,7 +189,7 @@ class TOrganizer(commands.Cog):
             value = await commands.MemberConverter().convert(ctx, value)
         elif attribute == 'time':
             try:
-                parser.parse(value, dayfirst=True)
+                value = parser.parse(value, dayfirst=True)
             except ValueError:
                 raise commands.BadArgument(
                     f"`{value}` is not a valid time format. Refer to the pinned messages for a list of time formats.")
@@ -222,12 +223,15 @@ class TOrganizer(commands.Cog):
             value = getattr(tournament, field)
             embed.add_field(name=field.title(), value=value)
 
+        if tournament.id is not None:
+            embed.set_footer(text="Tournament ID: " + str(tournament.id))
+
         await ctx.send("Here's how the tournament currently looks like:", embed=embed)
 
     @commands.command(aliases=['reset'])
     @is_authorized(to=True)
     async def treset(self, ctx):
-        if self.tournament.status >= 2:
+        if self.tournament.status in (2, 3, 4):
             raise commands.BadArgument(
                 f"The tournament is ongoing and cannot be reset. Please try to use `;cancel` instead.")
 
@@ -281,7 +285,9 @@ class TOrganizer(commands.Cog):
                                           {"name": "Time", "value": self.tournament.time}])
         self.tournament.status = Status.Scheduled
         self.tournament.save()
-        self.queue.append(self.tournament)
+        await ctx.send("Tournament ID: " + str(self.tournament.id))
+        if self.tournament not in self.queue:
+            self.queue.append(self.tournament)
         self.tournament = Tournament()
 
     @commands.group(aliases=['modifiers', 'modifers', 'modifer'])
@@ -454,7 +460,7 @@ class TOrganizer(commands.Cog):
     @commands.command()
     @allowed_channels(["t_channel", "bot_cmds"])
     async def join(self, ctx):
-        await self.CheckRequirements(ctx.author)
+        # await self.CheckRequirements(ctx.author)
 
         player_count = len(self.tournament.get_participants())
         mod_index = ModifierCheck("MaxParticipants", self.tournament.modifiers)
@@ -495,7 +501,7 @@ class TOrganizer(commands.Cog):
 
         embed = UpdatedEmbed(self.tournament)
         await self.tournament.msg.edit(embed=embed)
-        await self.checklist.update(ctx, self.tournament)
+        await self.checklist.update_text(ctx, self.tournament)
 
     @commands.command()
     @allowed_channels(["t_channel", "bot_cmds"])
@@ -553,7 +559,7 @@ class TOrganizer(commands.Cog):
 
             embed = UpdatedEmbed(self.tournament)
             await self.tournament.msg.edit(embed=embed)
-            await self.checklist.update(ctx, self.tournament)
+            await self.checklist.update_text(ctx, self.tournament)
 
         elif ctx.author in self.tournament.spectators:
             await ctx.author.remove_roles(self.roles.spectator)
@@ -583,7 +589,7 @@ class TOrganizer(commands.Cog):
 
             embed = UpdatedEmbed(self.tournament)
             await self.tournament.msg.edit(embed=embed)
-            await self.checklist.update(ctx, self.tournament)
+            await self.checklist.update_text(ctx, self.tournament)
 
         elif user in self.tournament.spectators:
             await user.remove_roles(self.roles.spectator)
@@ -610,7 +616,7 @@ class TOrganizer(commands.Cog):
                 "There are no participants in the tournament.")
 
         no_ign = ""
-        for player in self.tournament.participants:
+        for player in self.tournament.get_participants():
             user = User.fetch_by_id(ctx, player.id)
             if user.ign is None: no_ign += f"**{player.name}**\n"
 
@@ -790,7 +796,7 @@ class TOrganizer(commands.Cog):
         user_list = User.fetch_by_ids(ctx, id_list)
 
         for user in user_list:
-            player = [x for x in self.tournament.participants if x.id == user.id][0]
+            player = [x for x in self.tournament.get_participants() if x.id == user.id][0]
             summary, xp = self.tournament.calculate_xp_for(player, user.streak)
 
             user.participations += 1
@@ -925,24 +931,32 @@ class TOrganizer(commands.Cog):
             int_id = int(t_id)
         except ValueError:
             int_id = None
-        result = [t for t in self.queue if t.name == t_id or all([int_id is not None, t.id == int_id])]
-        if not result:
-            result = Tournament.get_tournament_by_id(self.client, t_id)
+
+        for tournament in self.queue:
+            if isinstance(int_id, int) and tournament.id == int_id:
+                return tournament
+
+            if tournament.name == t_id:
+                return tournament
+
+        result = Tournament.get_tournament_by_id(self.client, t_id)
+
+        if result is None:
+            result = Tournament.get_tournament_by_name(self.client, t_id)
 
             if result is None:
-                result = Tournament.get_tournament_by_name(self.client, t_id)
-
-                if result is None:
-                    raise commands.BadArgument("Tournament not found! If you searched by name, check your spelling"
+                raise commands.BadArgument("Tournament not found! If you searched by name, check your spelling"
                                                " and capitialization!")
-        else:
-            result = result[0]
 
         return result
 
     @commands.command(aliases=["load"])
     @is_authorized(to=True)
-    async def tload(self, ctx, t_id = None):
+    async def tload(self, ctx, *, t_id = None):
+        if self.tournament.status in (2, 3, 4):
+            raise commands.BadArgument(
+                f"The tournament is ongoing and cannot be reset. Please try to use `;cancel` instead.")
+
         tournament = self.search_tournament(t_id)
         self.tournament = tournament
         await ctx.send(f"{Emote.check} Loaded **{tournament.name}**.")
@@ -961,7 +975,12 @@ class TOrganizer(commands.Cog):
                 f"You have not specified a {items} for the tournament.")
 
         self.tournament.save()
-        await ctx.send(f"{Emote.check} Saved **{self.tournament.name}**.")
+
+        if self.tournament not in self.queue:
+            self.queue.append(self.tournament)
+
+        await ctx.send(f"{Emote.check} Saved **{self.tournament.name}**.\nTournament ID: {self.tournament.id}")
+        self.tournament = Tournament()
 
     @commands.command()
     @is_authorized(to=True)

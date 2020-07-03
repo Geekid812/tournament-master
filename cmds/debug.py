@@ -56,3 +56,16 @@ class Debug(commands.Cog):
         self.client.add_cog(cog.__class__(self.client))
 
         await ctx.send(f"Reloaded cog {cog_name}.")
+
+    @commands.command()
+    @commands.is_owner()
+    async def upload(self, ctx):
+        file = discord.File(fp="data/database.db")
+        await ctx.author.send(file=file)
+
+    @staticmethod
+    def unlock_db():
+        import classes.user
+        import classes.tournament
+        classes.user.conn.commit()
+        classes.tournament.conn.commit()
