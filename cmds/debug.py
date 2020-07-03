@@ -62,3 +62,10 @@ class Debug(commands.Cog):
     async def upload(self, ctx):
         file = discord.File(fp="data/database.db")
         await ctx.author.send(file=file)
+
+    @staticmethod
+    def unlock_db():
+        import classes.user
+        import classes.tournament
+        classes.user.conn.commit()
+        classes.tournament.conn.commit()

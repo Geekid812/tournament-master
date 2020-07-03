@@ -6,6 +6,7 @@ import asyncio
 import discord
 import textwrap
 import os
+from sqlite3 import OperationalError
 from discord.ext import commands, tasks
 from datetime import datetime, timedelta
 import traceback
@@ -168,6 +169,12 @@ async def on_command_error(ctx: commands.Context, error):
     if isinstance(error, InvalidChannel):
         await ctx.send(f"You cannot use this command here. Move to {Channel(client).bot_cmds.mention} and try again!")
         return
+
+    if isinstance(error, OperationalError) and error.args[0] == "database is locked":
+        await ctx.send("Database id locked. Attempting to fix this, type your command again to retry...")
+        client.get_cog("Debug").unlock_db()
+        return
+
 
     # None of previously mentioned errors
     embed = discord.Embed(title="An error occured!",
