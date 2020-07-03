@@ -189,7 +189,7 @@ class TOrganizer(commands.Cog):
             value = await commands.MemberConverter().convert(ctx, value)
         elif attribute == 'time':
             try:
-                parser.parse(value, dayfirst=True)
+                value = parser.parse(value, dayfirst=True)
             except ValueError:
                 raise commands.BadArgument(
                     f"`{value}` is not a valid time format. Refer to the pinned messages for a list of time formats.")
@@ -223,12 +223,15 @@ class TOrganizer(commands.Cog):
             value = getattr(tournament, field)
             embed.add_field(name=field.title(), value=value)
 
+        if tournament.id is not None:
+            embed.set_footer(text="Tournament ID: " + str(tournament.id))
+
         await ctx.send("Here's how the tournament currently looks like:", embed=embed)
 
     @commands.command(aliases=['reset'])
     @is_authorized(to=True)
     async def treset(self, ctx):
-        if self.tournament.status >= 2:
+        if self.tournament.status in (2, 3, 4):
             raise commands.BadArgument(
                 f"The tournament is ongoing and cannot be reset. Please try to use `;cancel` instead.")
 
@@ -282,6 +285,7 @@ class TOrganizer(commands.Cog):
                                           {"name": "Time", "value": self.tournament.time}])
         self.tournament.status = Status.Scheduled
         self.tournament.save()
+        await ctx.send("Tournament ID: " + str(self.tournament.id))
         if self.tournament not in self.queue:
             self.queue.append(self.tournament)
         self.tournament = Tournament()
@@ -949,6 +953,10 @@ class TOrganizer(commands.Cog):
     @commands.command(aliases=["load"])
     @is_authorized(to=True)
     async def tload(self, ctx, *, t_id = None):
+        if self.tournament.status in (2, 3, 4):
+            raise commands.BadArgument(
+                f"The tournament is ongoing and cannot be reset. Please try to use `;cancel` instead.")
+
         tournament = self.search_tournament(t_id)
         self.tournament = tournament
         await ctx.send(f"{Emote.check} Loaded **{tournament.name}**.")
@@ -971,8 +979,8 @@ class TOrganizer(commands.Cog):
         if self.tournament not in self.queue:
             self.queue.append(self.tournament)
 
+        await ctx.send(f"{Emote.check} Saved **{self.tournament.name}**.\nTournament ID: {self.tournament.id}")
         self.tournament = Tournament()
-        await ctx.send(f"{Emote.check} Saved **{self.tournament.name}**.")
 
     @commands.command()
     @is_authorized(to=True)
