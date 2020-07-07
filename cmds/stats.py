@@ -2,8 +2,8 @@
 
 # Importing Libraries
 import discord
-import time
 
+from datetime import datetime
 from discord.ext import commands
 
 from classes.perms import allowed_channels, is_authorized
@@ -349,7 +349,7 @@ class Stats(commands.Cog):
     async def upcoming(self, ctx):
         embed = discord.Embed(title="Upcoming Tournaments", color=discord.Color.green())
         text = ""
-        now = round(time.time())
+        now = datetime.utcnow().timestamp()
 
         upcoming = Tournament.custom_statement(self.client, f"SELECT * FROM tournaments WHERE timestamp>{now}"
                                                             " AND status=1 ORDER BY timestamp DESC")
