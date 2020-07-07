@@ -264,15 +264,12 @@ class TOrganizer(commands.Cog):
 
         for attr in self.attr:
             val = getattr(self.tournament, attr)
-            if attr == 'time':
-                time = parser.parse(val, dayfirst=True, ignoretz=True)
-                val = strftime(f"%A %d %b %H:%M *GMT*", time.timetuple())
-            elif attr == 'host':
+            if attr == 'host':
                 val = val.mention
             if attr not in ['name', 'roles'] and val is not None:
                 embed.add_field(name=attr.title(), value=val)
         embed.set_footer(
-            text=f"This tournament will take place in {TimeUntil(time)}!")
+            text=f"This tournament will take place in {TimeUntil(self.tournament.time)}!")
 
         await ctx.message.add_reaction(Emote.check)
         await self.channels.t_planned.send(f"New tournament scheduled! {self.roles.schedule.mention}",

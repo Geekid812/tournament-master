@@ -199,7 +199,7 @@ class Tournament():
         
         attrs['host_id'] = attrs['host'].id
         try:
-            attrs['timestamp'] = parser.parse(attrs['time'], dayfirst=True, ignoretz=True).timestamp()
+            attrs['timestamp'] = attrs['time']
         except TypeError:
             attrs['timestamp'] = None
 
