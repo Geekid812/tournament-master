@@ -6,6 +6,7 @@ import asyncio
 import random
 import chess
 import chess.svg
+import json
 from svglib.svglib import svg2rlg
 from discord.ext import commands
 from reportlab.graphics import renderPM
@@ -453,3 +454,68 @@ class Misc(commands.Cog):
         img.save('assets/chess_board.png')
 
         return discord.File(fp="assets/chess_board.png", filename="board.png")
+
+    @commands.command()
+    @allowed_channels(["bot_cmds"])
+    async def item(self, ctx, *, name):
+        with open("assets/items.json", "r") as f:
+            items = json.load(f)
+
+        encoded_name = name.lower().replace(" ", "-")
+        search_results = [item for item in items if encoded_name in item['name']]
+
+        if len(search_results) != 1:
+            embed = discord.Embed(title=f"Found {len(search_results)} results matching '{name}'",
+                                  color=discord.Color.dark_teal())
+
+            if len(search_results) < 30:
+                text = ""
+                num = 1
+                for result in search_results:
+                    text += f"`{num} -` {result['name']}\n"
+                    num += 1
+
+                if len(search_results) == 0:
+                    text = "No results found! \\:("
+
+            else:
+                text = "Please be more precise in your search!"
+
+            embed.description = text
+            await ctx.send(embed=embed)
+            return
+
+        item_ = search_results[0]
+        clean_name = item_["name"].replace("-", " ").title()
+        embed = discord.Embed(title=clean_name)
+        embed.set_image(url=item_["image"])
+
+        if item_["rarity"] == "RARE":
+            embed.color = discord.Color.blue()
+
+        elif item_["rarity"] == "EPIC":
+            embed.color = discord.Color.dark_magenta()
+
+        elif item_["rarity"] == "LEGENDARY":
+            embed.color = discord.Color.gold()
+
+        embed.add_field(name="Item Type", value=item_["type"].capitalize())
+        embed.add_field(name="Rarity", value=item_["rarity"].capitalize())
+
+        if "itemSet" in item_.keys():
+            clean_set_name = item_["itemSet"].replace("-", " ").title()
+            embed.add_field(name="Item Set", value=clean_set_name)
+
+        if item_["costGems"] != -1:
+            embed.add_field(name="Cost", value=f"{item_['costGems']} gems")
+
+        elif item_["costRoses"] != -1:
+            embed.add_field(name="Cost", value=f"{item_['costRoses']} roses")
+
+        elif item_["costCoins"] != -1:
+            embed.add_field(name="Cost", value=f"{item_['costCoins']} coins")
+
+        elif item_["minLevel"] != -1:
+            embed.add_field(name="Level Required", value=str(item_["minLevel"]))
+
+        await ctx.send(embed=embed)
