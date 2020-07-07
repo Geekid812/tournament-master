@@ -95,6 +95,14 @@ class Stats(commands.Cog):
                 )
             )
 
+            embed.add_field(
+                inline=False,
+                name="Other",
+                value=(
+                    "`;item <name>` Search for an item in Werewolf Online to get some info about it!"
+                )
+            )
+
             await ctx.send(embed=embed)
 
     @commands.command(aliases=['statistics', 'status', 'stat', 'profile'])
