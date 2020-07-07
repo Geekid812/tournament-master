@@ -92,6 +92,15 @@ class Stats(commands.Cog):
                     "`;gnk` (aka Geek, Nou, King) A game similar to rock, paper, scissors but named after the members"
                     " of this server!"
                     "\n`;fiar` (aka Four in a Row) Try to align 4 of your emojis!"
+                    "\n`;chess` The classic strategy game!"
+                )
+            )
+
+            embed.add_field(
+                inline=False,
+                name="Other",
+                value=(
+                    "`;item <name>` Search for an item in Werewolf Online to get some info about it!"
                 )
             )
 

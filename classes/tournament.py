@@ -198,10 +198,7 @@ class Tournament():
                 attrs[attr] = getattr(self, attr)
         
         attrs['host_id'] = attrs['host'].id
-        try:
-            attrs['timestamp'] = attrs['time']
-        except TypeError:
-            attrs['timestamp'] = None
+        attrs['timestamp'] = attrs['time'].timestamp()
 
         order = ('name','host_id','prize','timestamp','status','roles','note')
         attrlist = []
