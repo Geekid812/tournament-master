@@ -170,7 +170,7 @@ class Stats(commands.Cog):
         old_ign = user.ign
 
         user.ign = ign
-        self.client.get_cog("TOrganizer").cache_ign(ctx.author, ign)
+        self.client.get_cog("TOrganizer").cache_ign(member, ign)
 
         await ctx.send(f"{Emote.check} {ctx.author.mention}, **{member.name}**'s IGN has been set to `{ign}`.")
 
@@ -327,7 +327,7 @@ class Stats(commands.Cog):
 
             try:
                 td_str = TimeUntil(latest[0].time) + f" ({latest[0].name})"
-            except IndexError:
+            except (IndexError, TypeError):
                 td_str = "No results found!"
 
             text += f"{user.mention} - {td_str}\n"
