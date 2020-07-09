@@ -295,7 +295,7 @@ class Tournament():
         now = datetime.now().timestamp()
         tourney_list = []
 
-        response = cursor.execute("SELECT * FROM tournaments WHERE timestamp>?", (now,)).fetchall()
+        response = cursor.execute(f"SELECT * FROM tournaments WHERE timestamp>{now}").fetchall()
 
         for item in response:
 

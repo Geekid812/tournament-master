@@ -457,7 +457,7 @@ class TOrganizer(commands.Cog):
     @commands.command()
     @allowed_channels(["t_channel", "bot_cmds"])
     async def join(self, ctx):
-        # await self.CheckRequirements(ctx.author)
+        await self.CheckRequirements(ctx.author)
 
         player_count = len(self.tournament.get_participants())
         mod_index = ModifierCheck("MaxParticipants", self.tournament.modifiers)
