@@ -15,7 +15,6 @@ import traceback
 from core import ReadJSON, UpdatedPresence, Log
 from classes.emote import Emote
 from classes.channel import Channel
-from classes.role import Role
 from classes.perms import MissingPermissions, InvalidChannel, authorized
 from cmds.t_organizer import TOrganizer, TournamentJoinException
 from cmds.stats import Stats
@@ -34,7 +33,6 @@ starting = True
 async def on_ready():
     print("{0.name} is ready!\nID: {0.id}\ndiscord.py Version: {1}".format(
         client.user, str(discord.__version__)))
-    Log("Bot Online", color=discord.Color.green())
     await client.change_presence(activity=UpdatedPresence(client))
 
     # Cogs and Checks (only on first start)
@@ -56,18 +54,9 @@ async def on_ready():
         client.add_cog(misc_cog)
 
 
-# Disconnect Event
-@client.event
-async def on_disconnect():
-    print(f"{client.user.name} disconnected!")
-    Log("Bot Disconnected", color=discord.Color.red())
-
-
 # Resume Event
 @client.event
 async def on_resume():
-    print(f"{client.user.name} reconnected!")
-    Log("Bot Reconnected", color=discord.Color.green())
     await client.get_cog("TOrganizer").update_reminders()
 
 
@@ -80,12 +69,12 @@ async def on_reaction_add(reaction, user):
         ctx = await client.get_context(to_cog.tournament.msg)
         ctx.author = user
         ctx.message.author = user
-        await reaction.remove(user)
         if str(reaction.emoji) == Emote.join:  # Join button
             ctx.command = client.get_command("join")
         elif str(reaction.emoji) == "📽️":  # Spectate button
             ctx.command = client.get_command("spectate")
         await client.invoke(ctx)
+        await reaction.remove(user)
 
     elif to_cog.checklist is not None and reaction.message.id == to_cog.checklist.msg.id:
 
@@ -147,6 +136,10 @@ async def on_command_error(ctx: commands.Context, error):
         await ctx.send(
             f"{Emote.deny} **Missing Required Argument** \nThis command requires more arguments. Try again by "
             f"providing a `{error.param}` parameter this time!")
+        return
+
+    if isinstance(error, commands.errors.NotOwner):
+        print("Someone tried to use an owner command!")
         return
 
     if isinstance(error, TournamentJoinException):

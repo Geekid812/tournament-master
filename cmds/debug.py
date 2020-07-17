@@ -2,8 +2,6 @@
 
 # Importing Libraries
 import discord
-import sys
-import os
 from discord.ext import commands
 
 
@@ -35,7 +33,11 @@ class Debug(commands.Cog):
         result = await cog._eval(ctx, cmd)
 
         if result != "":
-            await ctx.send(str(result))
+            if len(result) <= 2000:
+                await ctx.send(str(result))
+            else:
+                await ctx.send("Output is too long, showing only the first 2000 characters.")
+                await ctx.send(str(result)[:2000])
 
     @commands.command()
     @commands.is_owner()

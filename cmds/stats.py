@@ -38,7 +38,7 @@ class Stats(commands.Cog):
             raise commands.BadArgument("Eval raised an exception: `" + str(e) + "`")
 
     @commands.command()
-    @allowed_channels(["bot_cmds", "t_chat"])
+    @allowed_channels(["bot_cmds", "t_chat"], level=1, to=True)
     async def ping(self, ctx):
         msg = await ctx.send(":ping_pong: Calculating latency...")
         latency = round(self.client.latency, 4) * 1000
@@ -50,12 +50,12 @@ class Stats(commands.Cog):
             content=f":link: Websocket Latency: `{latency}ms`\n:speech_balloon: Response Time: `{response_time}ms`")
 
     @commands.command()
-    @allowed_channels(["bot_cmds"])
+    @allowed_channels(["bot_cmds"], level=1, to=True)
     async def version(self, ctx):
         await ctx.send(f":gear: Version: `{version}`")
 
     @commands.command()
-    @allowed_channels(["bot_cmds"])
+    @allowed_channels(["bot_cmds"], level=1, to=True)
     async def help(self, ctx, sub=None):
         if sub is None:
             embed = discord.Embed(title=f"Command Help", color=discord.Color.dark_green())
@@ -107,7 +107,7 @@ class Stats(commands.Cog):
             await ctx.send(embed=embed)
 
     @commands.command(aliases=['statistics', 'status', 'stat', 'profile'])
-    @allowed_channels(["bot_cmds"])
+    @allowed_channels(["bot_cmds"], level=1, to=True)
     async def stats(self, ctx, target: discord.Member = None):
         if target is None:
             target = ctx.author
@@ -243,7 +243,7 @@ class Stats(commands.Cog):
             color=discord.Color.dark_red())
 
     @commands.command(aliases=["lb", "top"])
-    @allowed_channels(["bot_cmds"])
+    @allowed_channels(["bot_cmds"], level=1, to=True)
     async def leaderboard(self, ctx, board=None, page=1):
         boards = {"wins": "wins", "win": "wins", "levels": "level", "xp": "level", "level": "level",
                   "skill": "skill", "sp": "skill", "bal": "balance", "balance": "balance",
@@ -345,7 +345,7 @@ class Stats(commands.Cog):
         await ctx.send(embed=embed)
 
     @commands.command()
-    @allowed_channels(["bot_cmds"])
+    @allowed_channels(["bot_cmds"], level=1, to=True)
     async def upcoming(self, ctx):
         embed = discord.Embed(title="Upcoming Tournaments", color=discord.Color.green())
         text = ""
@@ -359,7 +359,8 @@ class Stats(commands.Cog):
             for tourney in upcoming:
                 text += f"**{tourney.name}** (Hosted by {tourney.host.mention}) - In {TimeUntil(tourney.time)}\n"
         else:
-            text = "There are no upcoming tournaments! :("
+            text = ("There seems to be no planned tournaments yet.\n\nMaybe you can check <#645574249968435200> to "
+                    "find the next tournament there.")
 
         embed.description = text
         await ctx.send(embed=embed)

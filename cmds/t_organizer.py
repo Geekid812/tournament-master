@@ -8,7 +8,7 @@ from time import strftime
 from dateutil import parser
 from datetime import datetime, timedelta
 from discord import Color, Embed, HTTPException
-from discord import Member
+from discord import Member, NotFound
 from discord.ext import commands
 
 from classes.channel import Channel
@@ -432,7 +432,6 @@ class TOrganizer(commands.Cog):
         ign_cache[host_id] = User.fetch_attr_by_id(host_id, "IGN")
         User.fetch_attr_by_id(host_id, "IGN")
 
-        self.tournament.status = Status.Opened
         await ctx.message.add_reaction(Emote.check)
         Log("Tournament Started",
             description=f"{ctx.author.mention} started **{self.tournament.name}**.",
@@ -443,11 +442,12 @@ class TOrganizer(commands.Cog):
         try:
             msg = await self.channels.t_channel.fetch_message(self.channels.t_channel.last_message_id)
             await msg.delete()
-        except AttributeError:
+        except (AttributeError, NotFound):
             pass
 
         self.tournament.msg = await self.channels.t_channel.send(f"Tournament **{self.tournament.name}** has started!"
                                                                  f" {self.roles.tournament.mention}", embed=embed)
+        self.tournament.status = Status.Opened
         await self.tournament.msg.add_reaction(Emote.join)
         if ModifierCheck("SpectatorsAllowed", self.tournament.modifiers) is not False:
             await self.tournament.msg.add_reaction("📽️")
@@ -581,7 +581,7 @@ class TOrganizer(commands.Cog):
             self.tournament.remove_participant(user)
             await ctx.send(f"{Emote.leave} {user.mention} was kicked from the tournament.")
             Log("Participant Kicked",
-                description=f"{ctx.author.mention} was kicked from **{self.tournament.name}** by {ctx.author.mention}.",
+                description=f"{user.mention} was kicked from **{self.tournament.name}** by {ctx.author.mention}.",
                 color=Color.dark_gold())
 
             embed = UpdatedEmbed(self.tournament)
