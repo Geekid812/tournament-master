@@ -33,6 +33,7 @@ class Debug(commands.Cog):
         result = await cog._eval(ctx, cmd)
 
         if result != "":
+            result = str(result)
             if len(result) <= 2000:
                 await ctx.send(str(result))
             else:

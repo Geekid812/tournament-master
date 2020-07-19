@@ -4,12 +4,11 @@ from discord import Embed, Color, utils
 from core import ModifierCheck
 from classes.emote import Emote
 from core import ReadJSON
-from dateutil import parser
 from datetime import datetime, timedelta
 import sqlite3
 from asyncio import CancelledError
 
-conn = sqlite3.connect("data/database.db")
+conn = sqlite3.connect("data/database.db", isolation_level=None)
 
 cursor = conn.cursor()
 
@@ -215,7 +214,6 @@ class Tournament():
                 "INSERT INTO tournaments(name, host_id, prize, timestamp, status, roles, note) VALUES (?,?,?,?,?,?,?)", attrlist)
             tourney = cursor.execute(
                 "SELECT ID FROM tournaments ORDER BY ID DESC").fetchone()
-            conn.commit()
             self.id = tourney[0]
 
         else:
@@ -232,7 +230,6 @@ class Tournament():
             update.append(self.id)
 
             cursor.execute(cmd, update)
-            conn.commit()
 
     async def start_reminder(self, destination):
         try:
@@ -333,5 +330,4 @@ class Tournament():
                 instance = cls._create_instance_from_raw(client, item)
                 out.append(instance)
 
-        conn.commit()
         return out

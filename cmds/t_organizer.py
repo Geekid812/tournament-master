@@ -437,6 +437,7 @@ class TOrganizer(commands.Cog):
             description=f"{ctx.author.mention} started **{self.tournament.name}**.",
             color=Color.green())
 
+        self.tournament.status = Status.Opened
         embed = UpdatedEmbed(self.tournament)
 
         try:
@@ -447,7 +448,6 @@ class TOrganizer(commands.Cog):
 
         self.tournament.msg = await self.channels.t_channel.send(f"Tournament **{self.tournament.name}** has started!"
                                                                  f" {self.roles.tournament.mention}", embed=embed)
-        self.tournament.status = Status.Opened
         await self.tournament.msg.add_reaction(Emote.join)
         if ModifierCheck("SpectatorsAllowed", self.tournament.modifiers) is not False:
             await self.tournament.msg.add_reaction("📽️")

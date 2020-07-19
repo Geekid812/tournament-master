@@ -4,7 +4,7 @@ import sqlite3
 import math
 from core import ReadJSON
 
-conn = sqlite3.connect("data/database.db")
+conn = sqlite3.connect("data/database.db", isolation_level=None)
 
 cursor = conn.cursor()
 
@@ -39,7 +39,6 @@ class User:
 
         # Always update username
         if user_class.username != username: user_class.username = username
-        conn.commit()
 
         return user_class
 
@@ -79,8 +78,6 @@ class User:
             new_user = cls._create_instance_from_raw(user)
 
             result.append(new_user)
-
-        conn.commit()
         return result
 
     @classmethod
@@ -149,8 +146,6 @@ class User:
             if item is not None:
                 instance = cls._create_instance_from_raw(client, item)
                 out.append(instance)
-
-        conn.commit()
         return out
 
     @property
@@ -161,7 +156,6 @@ class User:
     def id(self, value: int):
         self._ID = value
         cursor.execute("UPDATE stats SET ID=? WHERE ID=?", (value, self.id))
-        conn.commit()
 
     @property
     def username(self):
@@ -172,7 +166,6 @@ class User:
         self._username = value
         cursor.execute("UPDATE stats SET username=? WHERE ID=?",
                        (value, self.id))
-        conn.commit()
 
     @property
     def ign(self):
@@ -183,7 +176,6 @@ class User:
         self._IGN = value
         cursor.execute("UPDATE stats SET IGN=? WHERE ID=?",
                        (value, self.id))
-        conn.commit()
 
     @property
     def participations(self):
@@ -194,7 +186,6 @@ class User:
         self._participations = value
         cursor.execute(
             "UPDATE stats SET participations=? WHERE ID=?", (value, self.id))
-        conn.commit()
 
     @property
     def wins(self):
@@ -204,7 +195,6 @@ class User:
     def wins(self, value: int):
         self._wins = value
         cursor.execute("UPDATE stats SET wins=? WHERE ID=?", (value, self.id))
-        conn.commit()
 
     @property
     def hosted(self):
@@ -215,7 +205,6 @@ class User:
         self._hosted = value
         cursor.execute("UPDATE stats SET hosted=? WHERE ID=?",
                        (value, self.id))
-        conn.commit()
 
     @property
     def streak(self):
@@ -226,7 +215,6 @@ class User:
         self._streak = value
         cursor.execute("UPDATE stats SET streak=? WHERE ID=?",
                        (value, self.id))
-        conn.commit()
 
     @property
     def streak_age(self):
@@ -239,7 +227,6 @@ class User:
         self._streak_age = value
         cursor.execute(
             "UPDATE stats SET streak_age=? WHERE ID=?", (value, self.id))
-        conn.commit()
 
     @property
     def max_streak(self):
@@ -250,7 +237,6 @@ class User:
         self._max_streak = value
         cursor.execute(
             "UPDATE stats SET max_streak=? WHERE ID=?", (value, self.id))
-        conn.commit()
 
     @property
     def level(self):
@@ -260,7 +246,6 @@ class User:
     def level(self, value: int):
         self._level = value
         cursor.execute("UPDATE stats SET level=? WHERE ID=?", (value, self.id))
-        conn.commit()
 
     @property
     def xp(self):
@@ -274,7 +259,6 @@ class User:
 
         self._xp = value
         cursor.execute("UPDATE stats SET xp=? WHERE ID=?", (value, self.id))
-        conn.commit()
 
     @property
     def progress_bar(self):
