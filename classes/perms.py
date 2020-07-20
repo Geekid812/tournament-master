@@ -60,15 +60,13 @@ def is_authorized(level=5, to=False):
     return commands.check(pred)
 
 
-def allowed_channels(channel_list, level=5, to=False):
+def bot_cmds_only():
     def pred(ctx):
         channels = Channel(ctx.bot)
-        list_ = []
-        for channel in channel_list:
-            list_.append(getattr(channels, channel))
+        list_ = [channels.bot_cmds, channels.t_channel]
 
         try:
-            authorized(ctx, level=level, to=to)
+            authorized(ctx, level=1, to=True)
             return True
         except MissingPermissions:
             if ctx.channel in list_: return True

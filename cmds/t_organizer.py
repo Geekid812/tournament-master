@@ -13,7 +13,7 @@ from discord.ext import commands
 
 from classes.channel import Channel
 from classes.emote import Emote
-from classes.perms import is_authorized, allowed_channels, authorized
+from classes.perms import is_authorized, bot_cmds_only
 from classes.role import Role
 from classes.tournament import Tournament, Status
 from classes.user import User
@@ -455,7 +455,7 @@ class TOrganizer(commands.Cog):
         self.checklist = await Checklist.create(ctx)
 
     @commands.command()
-    @allowed_channels(["t_channel", "bot_cmds"])
+    @bot_cmds_only()
     async def join(self, ctx):
         await self.CheckRequirements(ctx.author)
 
@@ -501,7 +501,7 @@ class TOrganizer(commands.Cog):
         await self.checklist.update_text(ctx, self.tournament)
 
     @commands.command()
-    @allowed_channels(["t_channel", "bot_cmds"])
+    @bot_cmds_only()
     async def spectate(self, ctx):
         await self.CheckRequirements(ctx.author)
         if ModifierCheck("SpectatorsAllowed", self.tournament.modifiers) is False:
@@ -889,7 +889,7 @@ class TOrganizer(commands.Cog):
         return xp_info + full_progress
 
     @commands.command(aliases=["info"])
-    @allowed_channels(["bot_cmds"], to=True)
+    @bot_cmds_only()
     async def tinfo(self, ctx, *, t_id=None):
         result = self.search_tournament(t_id)
 
@@ -991,7 +991,7 @@ class TOrganizer(commands.Cog):
         await self.channels.t_channel.send(embed=embed)
 
     @commands.command(aliases=["reminder"])
-    @allowed_channels(["bot_cmds"])
+    @bot_cmds_only()
     async def remindme(self, ctx, *, t_id = None):
         tourney = self.search_tournament(t_id)
 

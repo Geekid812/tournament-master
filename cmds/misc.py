@@ -13,7 +13,7 @@ from reportlab.graphics import renderPM
 from PIL import Image
 
 from classes.emote import Emote
-from classes.perms import allowed_channels
+from classes.perms import bot_cmds_only
 
 
 class Misc(commands.Cog):
@@ -33,7 +33,7 @@ class Misc(commands.Cog):
             raise commands.BadArgument("Eval raised an exception: `" + str(e) + "`")
 
     @commands.command()
-    @allowed_channels(["bot_cmds"])
+    @bot_cmds_only()
     async def gnk(self, ctx, opponent: discord.Member):
         if opponent == ctx.author:
             raise commands.BadArgument("Sadly, you cannot challenge yourself.")
@@ -149,7 +149,7 @@ class Misc(commands.Cog):
         await ctx.send(msg)
 
     @commands.command()
-    @allowed_channels(["bot_cmds"])
+    @bot_cmds_only()
     async def fiar(self, ctx, opponent: discord.Member):
         if False:
             raise commands.BadArgument("Sadly, you cannot challenge yourself.")
@@ -315,6 +315,7 @@ class Misc(commands.Cog):
             if turn == 3: turn = 1
 
     @commands.command()
+    @bot_cmds_only()
     async def chess(self, ctx, opponent: discord.Member):
         if opponent == ctx.author:
             raise commands.BadArgument("Sadly, you cannot challenge yourself.")
@@ -456,7 +457,7 @@ class Misc(commands.Cog):
         return discord.File(fp="assets/chess_board.png", filename="board.png")
 
     @commands.command()
-    @allowed_channels(["bot_cmds"])
+    @bot_cmds_only()
     async def item(self, ctx, *, name):
         with open("assets/items.json", "r") as f:
             items = json.load(f)
