@@ -16,7 +16,6 @@ from core import Log, ReadJSON, TimeUntil
 STATS_LIST = ('participations', 'hosted', 'wins', 'losses', 'streak', 'streak_age', 'max_streak', 'xp', 'level')
 
 config = ReadJSON("config.json")
-version = config["version"]
 
 
 class Stats(commands.Cog):
@@ -52,7 +51,9 @@ class Stats(commands.Cog):
     @commands.command()
     @bot_cmds_only()
     async def version(self, ctx):
-        await ctx.send(f":gear: Version: `{version}`")
+        version = config["version"]
+        whats_new = config["new"]
+        await ctx.send(f":gear: Version: `{version}`\n\n__What's new:__ {whats_new}")
 
     @commands.command()
     @bot_cmds_only()
@@ -290,9 +291,11 @@ class Stats(commands.Cog):
         attr = boards[board.lower()]
         top, total = User.fetch_top_by_attr(attr, start=start)
         max_pages = total // 10 + 1
-        if page > max_pages: page = max_pages
+        if page > max_pages:
+            page = max_pages
+
         embed = discord.Embed(title=f"{attr.capitalize()} Leaderboard (Page {page} of {str(max_pages)})")
-        embed.color = colors[attr]
+        embed.colour = colors[attr]
 
         text = ""
         position = (page - 1) * 10 + 1
@@ -348,7 +351,6 @@ class Stats(commands.Cog):
     @bot_cmds_only()
     async def upcoming(self, ctx):
         embed = discord.Embed(title="Upcoming Tournaments", color=discord.Color.green())
-        text = ""
         now = datetime.utcnow().timestamp()
 
         upcoming = Tournament.custom_statement(self.client, f"SELECT * FROM tournaments WHERE timestamp>{now}"
