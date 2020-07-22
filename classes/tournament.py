@@ -5,14 +5,11 @@ from core import ModifierCheck
 from classes.emote import Emote
 from core import ReadJSON
 from datetime import datetime, timedelta
-import sqlite3
+from classes.user import conn
 from asyncio import CancelledError
 
-conn = sqlite3.connect("data/database.db", isolation_level=None)
-
-cursor = conn.cursor()
-
 config = ReadJSON("config.json")
+ROWS = ("ID", "name", "host_id", "prize", "timestamp", "status", "roles", "note", "subscribed_id")
 
 class Status:
     Pending = 0
@@ -197,7 +194,7 @@ class Tournament():
                 attrs[attr] = getattr(self, attr)
         
         attrs['host_id'] = attrs['host'].id
-        attrs['timestamp'] = attrs['time'].timestamp()
+        attrs['timestamp'] = int(attrs['time'].timestamp())
 
         order = ('name','host_id','prize','timestamp','status','roles','note')
         attrlist = []
@@ -206,13 +203,13 @@ class Tournament():
             attrlist.append(attrs[attr])
 
 
-        tourney = cursor.execute(
+        tourney = conn.execute(
             "SELECT * FROM tournaments WHERE ID=?", (self.id,)).fetchone()
 
         if tourney is None:
-            cursor.execute(
+            conn.execute(
                 "INSERT INTO tournaments(name, host_id, prize, timestamp, status, roles, note) VALUES (?,?,?,?,?,?,?)", attrlist)
-            tourney = cursor.execute(
+            tourney = conn.execute(
                 "SELECT ID FROM tournaments ORDER BY ID DESC").fetchone()
             self.id = tourney[0]
 
@@ -229,7 +226,7 @@ class Tournament():
             cmd = cmd[:-2] + " WHERE ID=?"
             update.append(self.id)
 
-            cursor.execute(cmd, update)
+            conn.execute(cmd, update)
 
     async def start_reminder(self, destination):
         try:
@@ -252,10 +249,9 @@ class Tournament():
     def _create_instance_from_raw(cls, client, raw):
         guild = client.get_guild(config['guild_id'])
         new_instance = cls()
-        attributes = [description[0] for description in cursor.description]
 
-        for i in range(len(attributes)):
-            name = attributes[i].lower()
+        for i in range(len(ROWS)):
+            name = ROWS[i].lower()
             value = raw[i]
 
             if name == 'host_id':
@@ -292,7 +288,7 @@ class Tournament():
         now = datetime.now().timestamp()
         tourney_list = []
 
-        response = cursor.execute(f"SELECT * FROM tournaments WHERE timestamp>{now}").fetchall()
+        response = conn.execute(f"SELECT * FROM tournaments WHERE timestamp>{now}").fetchall()
 
         for item in response:
 
@@ -304,7 +300,7 @@ class Tournament():
 
     @classmethod
     def get_tournament_by_id(cls, client, t_id):
-        response = cursor.execute("SELECT * FROM tournaments WHERE ID=?", (str(t_id),)).fetchone()
+        response = conn.execute("SELECT * FROM tournaments WHERE ID=?", (str(t_id),)).fetchone()
 
         if response is not None:
             response = cls._create_instance_from_raw(client, response)
@@ -313,7 +309,7 @@ class Tournament():
 
     @classmethod
     def get_tournament_by_name(cls, client, t_name):
-        response = cursor.execute("SELECT * FROM tournaments WHERE name=?", (t_name,)).fetchone()
+        response = conn.execute("SELECT * FROM tournaments WHERE name=?", (t_name,)).fetchone()
 
         if response is not None:
             response = cls._create_instance_from_raw(client, response)
@@ -322,7 +318,7 @@ class Tournament():
 
     @classmethod
     def custom_statement(cls, client, statement):
-        response = cursor.execute(statement).fetchall()
+        response = conn.execute(statement).fetchall()
         out = []
 
         for item in response:

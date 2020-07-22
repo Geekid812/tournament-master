@@ -5,8 +5,8 @@ import math
 from core import ReadJSON
 
 conn = sqlite3.connect("data/database.db", isolation_level=None)
-
-cursor = conn.cursor()
+ROWS = ("ID", "username", "IGN", "participations", "wins", "hosted",
+        "streak", "streak_age", "max_streak", "level", "xp")
 
 config = ReadJSON("config.json")
 
@@ -15,24 +15,23 @@ class User:
     @classmethod
     def _create_instance_from_raw(cls, raw):
         new_instance = cls()
-        attributes = [description[0] for description in cursor.description]
-        for i in range(len(attributes)):
-            setattr(new_instance, "_" + attributes[i], raw[i])
+        for i in range(len(ROWS)):
+            setattr(new_instance, "_" + ROWS[i], raw[i])
 
         return new_instance
 
     @classmethod
     def fetch_by_id(cls, ctx, user_id):
         user_id = str(user_id)
-        user = cursor.execute(
+        user = conn.execute(
             "SELECT * FROM stats WHERE ID=?", (user_id,)).fetchone()
         member = ctx.bot.get_guild(config['guild_id']).get_member(int(user_id))
         username = f"{member.name}#{member.discriminator}"
 
         if user is None:  # New User
-            cursor.execute(
+            conn.execute(
                 "INSERT INTO stats (ID, username) VALUES (?,?)", (user_id, username))
-            user = cursor.execute(
+            user = conn.execute(
                 "SELECT * FROM stats WHERE ID=?", (user_id,)).fetchone()
 
         user_class = cls._create_instance_from_raw(user)
@@ -49,7 +48,7 @@ class User:
 
         if len(ids) == 1:
             ids = str(ids)[:-2] + ")"
-        users = cursor.execute(f"SELECT * FROM stats WHERE ID IN {ids}").fetchall()
+        users = conn.execute(f"SELECT * FROM stats WHERE ID IN {ids}").fetchall()
 
         for user in users:
             uid = user[0]
@@ -69,10 +68,10 @@ class User:
             member = ctx.bot.get_guild(config['guild_id']).get_member(user)
             username = f"{member.name}#{member.discriminator}"
 
-            cursor.execute(
+            conn.execute(
                 "INSERT INTO stats (ID, username) VALUES (?,?)", (user, username))
 
-            user = cursor.execute(
+            user = conn.execute(
                 "SELECT * FROM stats WHERE ID=?", (user,)).fetchone()
 
             new_user = cls._create_instance_from_raw(user)
@@ -84,7 +83,7 @@ class User:
     def fetch_attr_by_id(cls, user_id, attr):
         user_id = str(user_id)
 
-        value = cursor.execute(
+        value = conn.execute(
             f"SELECT {attr} FROM stats WHERE ID={user_id}").fetchone()
 
         if value is None:
@@ -106,7 +105,7 @@ class User:
     def fetch_top_by_attr(cls, attr, start=0):
         if attr == "level": attr = "level DESC, xp"
 
-        value = cursor.execute(
+        value = conn.execute(
             f"SELECT * FROM stats ORDER BY {attr} DESC").fetchall()
         total = len(value)
         if start > total: start = total // 10 * 10
@@ -126,7 +125,7 @@ class User:
         user_id = self.id
         if attr == "level": attr = "level DESC, xp"
 
-        value = cursor.execute(
+        value = conn.execute(
             f"SELECT * FROM stats ORDER BY {attr} DESC").fetchall()
         total = len(value)
 
@@ -139,7 +138,7 @@ class User:
 
     @classmethod
     def custom_statement(cls, client, statement):
-        response = cursor.execute(statement).fetchall()
+        response = conn.execute(statement).fetchall()
         out = []
 
         for item in response:
@@ -155,7 +154,7 @@ class User:
     @id.setter
     def id(self, value: int):
         self._ID = value
-        cursor.execute("UPDATE stats SET ID=? WHERE ID=?", (value, self.id))
+        conn.execute("UPDATE stats SET ID=? WHERE ID=?", (value, self.id))
 
     @property
     def username(self):
@@ -164,7 +163,7 @@ class User:
     @username.setter
     def username(self, value: str):
         self._username = value
-        cursor.execute("UPDATE stats SET username=? WHERE ID=?",
+        conn.execute("UPDATE stats SET username=? WHERE ID=?",
                        (value, self.id))
 
     @property
@@ -174,7 +173,7 @@ class User:
     @ign.setter
     def ign(self, value: str):
         self._IGN = value
-        cursor.execute("UPDATE stats SET IGN=? WHERE ID=?",
+        conn.execute("UPDATE stats SET IGN=? WHERE ID=?",
                        (value, self.id))
 
     @property
@@ -184,7 +183,7 @@ class User:
     @participations.setter
     def participations(self, value: int):
         self._participations = value
-        cursor.execute(
+        conn.execute(
             "UPDATE stats SET participations=? WHERE ID=?", (value, self.id))
 
     @property
@@ -194,7 +193,7 @@ class User:
     @wins.setter
     def wins(self, value: int):
         self._wins = value
-        cursor.execute("UPDATE stats SET wins=? WHERE ID=?", (value, self.id))
+        conn.execute("UPDATE stats SET wins=? WHERE ID=?", (value, self.id))
 
     @property
     def hosted(self):
@@ -203,7 +202,7 @@ class User:
     @hosted.setter
     def hosted(self, value: int):
         self._hosted = value
-        cursor.execute("UPDATE stats SET hosted=? WHERE ID=?",
+        conn.execute("UPDATE stats SET hosted=? WHERE ID=?",
                        (value, self.id))
 
     @property
@@ -213,7 +212,7 @@ class User:
     @streak.setter
     def streak(self, value: int):
         self._streak = value
-        cursor.execute("UPDATE stats SET streak=? WHERE ID=?",
+        conn.execute("UPDATE stats SET streak=? WHERE ID=?",
                        (value, self.id))
 
     @property
@@ -225,7 +224,7 @@ class User:
         if value is not None:
             value = int(value)
         self._streak_age = value
-        cursor.execute(
+        conn.execute(
             "UPDATE stats SET streak_age=? WHERE ID=?", (value, self.id))
 
     @property
@@ -235,7 +234,7 @@ class User:
     @max_streak.setter
     def max_streak(self, value: int):
         self._max_streak = value
-        cursor.execute(
+        conn.execute(
             "UPDATE stats SET max_streak=? WHERE ID=?", (value, self.id))
 
     @property
@@ -245,7 +244,7 @@ class User:
     @level.setter
     def level(self, value: int):
         self._level = value
-        cursor.execute("UPDATE stats SET level=? WHERE ID=?", (value, self.id))
+        conn.execute("UPDATE stats SET level=? WHERE ID=?", (value, self.id))
 
     @property
     def xp(self):
@@ -258,7 +257,7 @@ class User:
             self.level += 1
 
         self._xp = value
-        cursor.execute("UPDATE stats SET xp=? WHERE ID=?", (value, self.id))
+        conn.execute("UPDATE stats SET xp=? WHERE ID=?", (value, self.id))
 
     @property
     def progress_bar(self):
