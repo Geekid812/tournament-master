@@ -332,7 +332,7 @@ class Stats(commands.Cog):
         text = ""
 
         for user in self.roles.t_organizer.members:
-            if user == self.client.user: return
+            if user == self.client.user: continue
 
             latest = Tournament.custom_statement(self.client, f"SELECT * FROM tournaments WHERE host_id={user.id}"
                                                               " AND status=5 ORDER BY timestamp DESC")

@@ -9,7 +9,6 @@ with open("data/config.json") as f:
 
 class Channel:
     def __init__(self, client):
-        print(f"{config['debug']=}")
         for i in range(5):
             self.t_channel = client.get_channel(553645306957398026)
             self.t_chat = client.get_channel(553646158786854913)
