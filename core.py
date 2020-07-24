@@ -2,6 +2,7 @@
 
 # Importing libraries
 import json
+import random
 from datetime import datetime
 from time import strftime
 import discord
@@ -195,3 +196,11 @@ def UpdatedEmbed(tournament):
         embed.set_author(name="Tournament Started")
 
     return embed
+
+
+def Tip():
+    """
+    Returns a random tip.
+    """
+    tips = ReadJSON("assets/tips.json")
+    return random.choice(tips)

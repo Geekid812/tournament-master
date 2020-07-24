@@ -17,7 +17,7 @@ from classes.perms import is_authorized, bot_cmds_only
 from classes.role import Role
 from classes.tournament import Tournament, Status
 from classes.user import User
-from core import Log, TimeUntil, ModifierCheck, UpdatedEmbed, SendFirstTournamentMessage
+from core import Log, TimeUntil, ModifierCheck, UpdatedEmbed, SendFirstTournamentMessage, Tip
 
 
 class TournamentJoinException(commands.CommandError):
@@ -807,6 +807,7 @@ class TOrganizer(commands.Cog):
                 embed.color = Color.from_rgb(200, 200, 0)
                 embed.description = "\n**You won!** :tada:"
 
+                user.wins += 1
                 user.streak += 1
                 user.streak_age = 0
                 embed.description += f"\nYou're now on a **{user.streak}** win streak!"
@@ -833,7 +834,7 @@ class TOrganizer(commands.Cog):
                 level_info += f"\n\nYou leveled up to level **{user.level}**! :partying_face:"
 
             embed.add_field(name="Experience", value=summary + "\n\n" + level_info)
-            embed.set_footer(text="Want to see more statistics? Check out the ;stats command in #bot-commands!")
+            embed.set_footer(text=Tip())
             embed.set_author(name="Results")
 
             try:
@@ -904,11 +905,13 @@ class TOrganizer(commands.Cog):
         embed.set_footer(text="Tournament ID: " + str(result.id))
 
         if result.time is not None:
-            try:
-                time_left = TimeUntil(result.time)
-                countdown = f"\nStarting in **{time_left}**"
-            except ValueError:
-                countdown = ""
+            countdown = ""
+            if result.time < datetime.utcnow().timestamp():
+                try:
+                    time_left = TimeUntil(result.time)
+                    countdown = f"\nStarting in **{time_left}**"
+                except ValueError:
+                    pass
 
             embed.add_field(name="Time", value=strftime(f"%A %d %b %H:%M *GMT*", result.time.timetuple()) + countdown)
         else:
