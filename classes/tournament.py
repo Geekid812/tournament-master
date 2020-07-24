@@ -230,7 +230,6 @@ class Tournament():
 
     async def start_reminder(self, destination):
         try:
-            print("Starting reminder!")
             ten_mins_before = self.time - timedelta(minutes=10)
             await utils.sleep_until(ten_mins_before)
             mentions = ""
@@ -285,7 +284,7 @@ class Tournament():
 
     @classmethod
     def get_tournaments(cls, client):
-        now = datetime.now().timestamp()
+        now = datetime.utcnow().timestamp()
         tourney_list = []
 
         response = conn.execute(f"SELECT * FROM tournaments WHERE timestamp>{now}").fetchall()

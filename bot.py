@@ -55,9 +55,9 @@ async def on_ready():
 
 
 # Resume Event
-@client.event
-async def on_resume():
-    await client.get_cog("TOrganizer").update_reminders()
+# @client.event
+# async def on_resume():
+#     await client.get_cog("TOrganizer").update_reminders()
 
 
 # Reaction Filter
@@ -97,18 +97,19 @@ async def on_reaction_remove(reaction, user):
 
 
 def CheckToggle(ctx, user_list):
-        checked = False
-        for user in user_list:
-            if user == client.user: continue
+    checked = False
+    for user in user_list:
+        if user == client.user: continue
 
-            try:
-                authorized(ctx, user=user, to=True)
-            except MissingPermissions: continue
+        try:
+            authorized(ctx, user=user, to=True)
+        except MissingPermissions:
+            continue
 
-            checked = True
-            break
+        checked = True
+        break
 
-        return checked
+    return checked
 
 
 # Presence Manager
@@ -164,10 +165,9 @@ async def on_command_error(ctx: commands.Context, error):
         return
 
     if isinstance(error, OperationalError) and error.args[0] == "database is locked":
-        await ctx.send("Database id locked. Attempting to fix this, type your command again to retry...")
+        await ctx.send("Database is locked. Attempting to fix this, type your command again to retry...")
         client.get_cog("Debug").unlock_db()
         return
-
 
     # None of previously mentioned errors
     embed = discord.Embed(title="An error occured!",

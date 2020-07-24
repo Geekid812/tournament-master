@@ -137,6 +137,8 @@ class TOrganizer(commands.Cog):
                           {'name': 'AutoGiveCoins', 'value': int},
                           {'name': 'AssistingTO', 'value': commands.MemberConverter()}]
 
+        asyncio.create_task(self.update_reminders())
+
         print(self.__class__.__name__ + " cog initialized!")
 
     async def _eval(self, ctx, cmd):
@@ -906,7 +908,7 @@ class TOrganizer(commands.Cog):
 
         if result.time is not None:
             countdown = ""
-            if result.time < datetime.utcnow().timestamp():
+            if result.time > datetime.utcnow():
                 try:
                     time_left = TimeUntil(result.time)
                     countdown = f"\nStarting in **{time_left}**"
