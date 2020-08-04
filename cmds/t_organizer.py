@@ -266,6 +266,8 @@ class TOrganizer(commands.Cog):
 
         for attr in self.attr:
             val = getattr(self.tournament, attr)
+            if attr == 'time':
+                val = val.strftime("%A %d %b at %I:%M%p *GMT*")
             if attr == 'host':
                 val = val.mention
             if attr not in ['name', 'roles'] and val is not None:
@@ -825,10 +827,14 @@ class TOrganizer(commands.Cog):
                     embed.description += f"\nYou're on your way to beat your max win streak of **{user.max_streak}**!"
 
             else:
+                if user.streak != 0:
+                    embed.description = f"\n **You lost!** :frowning:\nYou lost your win streak of {user.streak}."
+                else:
+                    embed.description = "\n **You lost!** :frowning:"
+                
                 user.streak = 0
                 user.streak_age = None
                 embed.color = Color.red()
-                embed.description = f"\n **You lost!** :frowning:\nYou lost your win streak of {user.streak}."
 
             level_info = self._format_level_info(user)
 
@@ -836,7 +842,7 @@ class TOrganizer(commands.Cog):
                 level_info += f"\n\nYou leveled up to level **{user.level}**! :partying_face:"
 
             embed.add_field(name="Experience", value=summary + "\n\n" + level_info)
-            embed.set_footer(text=Tip())
+            embed.set_footer(text="TIP: " + Tip())
             embed.set_author(name="Results")
 
             try:
