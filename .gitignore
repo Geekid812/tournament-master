@@ -4,10 +4,8 @@ __pycache__
 # Ignore VSCode cache
 .vscode
 
-# (TEMP) Ignore data folder
-data
-
 # Ignore Pycharm cache
 .idea/
 
 versions/
+data/stuff
